@@ -11,29 +11,56 @@ interface ImportMetaEnv {
 // Production: uses .env.production file or environment variable
 const getApiBaseUrl = (): string => {
   const env = (import.meta as { env?: ImportMetaEnv }).env;
-  const mode = env?.MODE || 'development';
   
-  // Check for explicit API URL in environment
+  // Priority 1: Check for explicit API URL in environment variable (highest priority)
   if (env?.VITE_API_BASE_URL) {
     return env.VITE_API_BASE_URL;
   }
   
-  // Auto-detect based on current hostname
+  // Priority 2: Auto-detect based on current hostname (for production deployments)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     
-    // Production detection: not localhost and not 127.0.0.1
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('192.168.')) {
-      // In production, try to construct API URL from current domain
-      const protocol = window.location.protocol;
-      const port = window.location.port ? `:${window.location.port}` : '';
-      // Assume API is on same domain with /api subdomain or /api path
-      // You can customize this logic based on your deployment
-      return `${protocol}//api.${hostname}${port}/api`;
+    // Production detection: not localhost, not 127.0.0.1, and not private IPs
+    const isProduction = hostname !== 'localhost' && 
+                        hostname !== '127.0.0.1' && 
+                        !hostname.includes('192.168.') &&
+                        !hostname.includes('10.') &&
+                        !hostname.includes('172.');
+    
+    if (isProduction) {
+      // For production, try to construct API URL from current domain
+      // Handle different deployment scenarios:
+      
+      // Case 1: Custom domain (mrdsphub.in, www.mrdsphub.in)
+      if (hostname.includes('mrdsphub.in')) {
+        return 'https://api.mrdsphub.in/api';
+      }
+      
+      // Case 2: CloudFront distribution
+      if (hostname.includes('cloudfront.net')) {
+        return 'https://api.mrdsphub.in/api';
+      }
+      
+      // Case 3: S3 website endpoint (fallback)
+      if (hostname.includes('s3-website') || hostname.includes('amazonaws.com')) {
+        return 'https://api.mrdsphub.in/api';
+      }
+      
+      // Case 4: Generic production - try to construct from domain
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'https:';
+      // Extract root domain (e.g., mrdsphub.in from www.mrdsphub.in)
+      const domainParts = hostname.split('.');
+      let rootDomain = hostname;
+      if (domainParts.length >= 2) {
+        // Take last two parts (e.g., mrdsphub.in)
+        rootDomain = domainParts.slice(-2).join('.');
+      }
+      return `${protocol}//api.${rootDomain}/api`;
     }
   }
   
-  // Default to localhost for development
+  // Priority 3: Default to localhost for development
   return 'http://localhost:8000/api';
 };
 

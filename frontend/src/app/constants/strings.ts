@@ -47,7 +47,7 @@ export const MESSAGES = {
     LOAD_PRODUCT_DETAILS: 'Failed to load product details',
     PRODUCT_NOT_FOUND: 'Product not found',
     PRODUCT_NOT_EXIST: 'The product you are looking for does not exist.',
-    BACKEND_NOT_RUNNING: 'Make sure the Django backend is running on http://localhost:8000',
+    BACKEND_NOT_RUNNING: 'Unable to connect to the backend API. Please check your connection and ensure the backend server is running.',
     NO_CATEGORIES: 'No categories found',
   },
   SUCCESS: {
