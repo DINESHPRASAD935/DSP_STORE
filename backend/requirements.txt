@@ -1,0 +1,11 @@
+Django==5.0.0
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+django-filter==23.5
+Pillow==10.1.0
+# Database URL parser (for production PostgreSQL)
+dj-database-url==2.1.0
+# Security: Rate limiting
+django-ratelimit==4.1.0
+# Environment variable loader
+python-dotenv==1.0.0
