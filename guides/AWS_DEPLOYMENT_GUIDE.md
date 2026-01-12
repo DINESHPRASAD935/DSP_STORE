@@ -71,22 +71,34 @@ See **[MULTITENANT_GUIDE.md](./MULTITENANT_GUIDE.md)** for detailed multitenant 
 
 #### Step 2: Create EC2 Instance for Backend
 
+**📖 For detailed step-by-step EC2 setup with latest AWS Console interface, see [EC2 Setup Guide](./EC2_SETUP_GUIDE.md)**
+
+**Quick Summary:**
 1. **Go to AWS Console → EC2 → Launch Instance**
 
 2. **Configuration:**
    - Name: `mrdsphub-backend`
    - AMI: Ubuntu Server 22.04 LTS
-   - Instance Type: `t3.micro` (free tier) or `t3.small`
+   - Instance Type: `t3.small` (recommended for production) or `t3.micro` (free tier)
    - Key Pair: Create new or use existing (download .pem file!)
    - Network Settings:
      - Allow HTTP (port 80)
      - Allow HTTPS (port 443)
      - Allow SSH (port 22) from your IP
-   - Storage: 20 GB
+   - Storage: 30 GB (gp3 volume type recommended)
+   - User Data: Optional automated setup script (see EC2 Setup Guide)
 
 3. **Click "Launch Instance"**
 
 4. **Note the Public IP:** `xx.xx.xx.xx`
+
+**💡 Tip**: The [EC2 Setup Guide](./EC2_SETUP_GUIDE.md) includes:
+- Latest AWS Console interface (2024)
+- Detailed security group configuration
+- Automated setup with user data script
+- Post-deployment configuration steps
+- Security best practices
+- Monitoring and troubleshooting
 
 #### Step 3: Configure Security Groups
 
@@ -105,6 +117,12 @@ See **[MULTITENANT_GUIDE.md](./MULTITENANT_GUIDE.md)** for detailed multitenant 
      - HTTP (80) from 0.0.0.0/0
      - HTTPS (443) from 0.0.0.0/0
      - SSH (22) from Your IP
+   
+   **🔍 How to Find Your IP Address:**
+   - **Easiest**: In AWS Console, when adding SSH rule, click **"My IP"** button - it auto-detects your IP!
+   - **Online**: Visit https://whatismyipaddress.com/ or https://ifconfig.me/
+   - **Command Line**: `curl ifconfig.me` (Linux/Mac) or `(Invoke-WebRequest -Uri "https://api.ipify.org").Content` (Windows)
+   - **Note**: If you have dynamic IP, it may change - update security group if SSH stops working
 
 #### Step 4: Connect to EC2 and Setup Backend
 

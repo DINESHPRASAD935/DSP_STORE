@@ -165,12 +165,201 @@ git push origin production
      - HTTPS (443) from 0.0.0.0/0
      - SSH (22) from Your IP
 
+   **🔍 How to Find Your IP Address:**
+   
+   **Method 1: Use AWS Console "My IP" Button (Easiest)**
+   - When adding the SSH rule, click the **"My IP"** button in the Source field
+   - AWS will automatically detect and fill in your current public IP address
+   - This is the easiest method!
+   
+   **Method 2: Online Services**
+   - Visit: https://whatismyipaddress.com/
+   - Or: https://ifconfig.me/
+   - Or: https://api.ipify.org
+   - Copy the IPv4 address shown (e.g., `203.0.113.45`)
+   
+   **Method 3: Command Line (Linux/Mac)**
+   ```bash
+   # Get your public IP
+   curl ifconfig.me
+   # Or
+   curl ipinfo.io/ip
+   # Or
+   curl api.ipify.org
+   ```
+   
+   **Method 4: Command Line (Windows PowerShell)**
+   ```powershell
+   (Invoke-WebRequest -Uri "https://api.ipify.org").Content
+   ```
+   
+   **Method 5: Check Router/ISP**
+   - Login to your router admin panel
+   - Check WAN IP address
+   
+   **⚠️ Important Notes:**
+   - Your IP may change if you have a **dynamic IP** (most home connections)
+   - If your IP changes, you'll need to update the security group rule
+   - For **static IP** (business connections), the IP won't change
+   - If you can't connect via SSH later, check if your IP has changed
+   - You can also allow a range: `203.0.113.0/24` (allows 203.0.113.0-255)
+
 ### Step 5: Setup EC2 Instance
 
 1. **SSH into EC2:**
+
+   **🔍 What is SSH?**
+   
+   **SSH (Secure Shell)** is a secure way to remotely access and control your EC2 server from your computer. Think of it like:
+   - **Remote Desktop** for Linux servers
+   - A **secure terminal/command line** connection to your server
+   - Like logging into your computer, but from anywhere in the world
+   
+   **Why do we need SSH?**
+   - To install software (Python, Nginx, etc.)
+   - To configure your Django application
+   - To run commands on the server
+   - To upload files and manage your application
+   - To check logs and troubleshoot issues
+   
+   **📝 Step-by-Step SSH Connection:**
+   
+   **Step 1: Get Your EC2 Instance Details**
+   - Go to AWS Console → EC2 → Instances
+   - Find your instance (`mrdsphub-backend`)
+   - Note the **Public IPv4 address** (e.g., `54.123.45.67`)
+   - Note the **Key Pair name** (e.g., `mrdsphub-backend-key`)
+   
+   **Step 2: Locate Your Key File**
+   - Find the `.pem` file you downloaded when creating the key pair
+   - It should be in your Downloads folder or wherever you saved it
+   - Example: `mrdsphub-backend-key.pem`
+   
+   **Step 3: Set Correct Permissions (Linux/Mac Only)**
    ```bash
-   ssh -i your-key.pem ubuntu@your-ec2-ip
+   # Navigate to where your .pem file is located
+   cd ~/Downloads  # or wherever you saved it
+   
+   # Set permissions (required for security)
+   chmod 400 mrdsphub-backend-key.pem
    ```
+   
+   **Why?** SSH requires the key file to have restricted permissions (only you can read it).
+   
+   **Step 4: Connect via SSH**
+   
+   **On Linux/Mac:**
+   ```bash
+   ssh -i mrdsphub-backend-key.pem ubuntu@54.123.45.67
+   ```
+   
+   **Breakdown of the command:**
+   - `ssh` = SSH command
+   - `-i` = "identity file" (your key file)
+   - `mrdsphub-backend-key.pem` = your key file name
+   - `ubuntu` = username (Ubuntu servers use "ubuntu" by default)
+   - `@54.123.45.67` = your EC2 instance's public IP address
+   
+   **On Windows (using PowerShell or WSL):**
+   ```powershell
+   # Same command works in PowerShell or WSL
+   ssh -i mrdsphub-backend-key.pem ubuntu@54.123.45.67
+   ```
+   
+   **On Windows (using PuTTY):**
+   1. Download and install PuTTY: https://www.putty.org/
+   2. Download PuTTYgen (comes with PuTTY)
+   3. Convert `.pem` to `.ppk`:
+      - Open PuTTYgen
+      - Click "Load" → Select your `.pem` file
+      - Click "Save private key" → Save as `.ppk` file
+   4. Open PuTTY:
+      - Host Name: `ubuntu@54.123.45.67`
+      - Connection Type: SSH
+      - Go to Connection → SSH → Auth → Credentials
+      - Browse and select your `.ppk` file
+      - Click "Open"
+   
+   **Step 5: First Connection - Accept Fingerprint**
+   
+   When you connect for the first time, you'll see:
+   ```
+   The authenticity of host '54.123.45.67' can't be established.
+   ECDSA key fingerprint is SHA256:xxxxxxxxxxxxx.
+   Are you sure you want to continue connecting (yes/no/[fingerprint])?
+   ```
+   
+   Type `yes` and press Enter. This is normal for first-time connections.
+   
+   **Step 6: You're Connected!**
+   
+   You should now see something like:
+   ```
+   Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-xxxx-generic x86_64)
+   
+   * Documentation:  https://help.ubuntu.com
+   * Management:     https://landscape.canonical.com
+   * Support:        https://ubuntu.com/advantage
+   
+   ubuntu@ip-172-31-xx-xx:~$
+   ```
+   
+   **🎉 Success!** You're now connected to your EC2 server!
+   
+   The `ubuntu@ip-172-31-xx-xx:~$` is your command prompt. You can now run commands on the server.
+   
+   **Common Commands to Verify Connection:**
+   ```bash
+   # Check current directory
+   pwd
+   # Output: /home/ubuntu
+   
+   # Check who you are
+   whoami
+   # Output: ubuntu
+   
+   # Check system info
+   uname -a
+   
+   # Check disk space
+   df -h
+   
+   # Check memory
+   free -h
+   ```
+   
+   **To Disconnect:**
+   - Type `exit` and press Enter
+   - Or press `Ctrl + D`
+   
+   **⚠️ Troubleshooting SSH Connection Issues:**
+   
+   **Problem: "Permission denied (publickey)"**
+   - **Solution**: Check key file permissions: `chmod 400 your-key.pem`
+   - **Solution**: Verify you're using the correct key file name
+   - **Solution**: Make sure you're using the correct username (`ubuntu` for Ubuntu)
+   
+   **Problem: "Connection timed out"**
+   - **Solution**: Check if security group allows SSH (port 22) from your IP
+   - **Solution**: Verify the instance is running (check AWS Console)
+   - **Solution**: Check if your IP address has changed (update security group)
+   
+   **Problem: "Host key verification failed"**
+   - **Solution**: Remove old host key: `ssh-keygen -R 54.123.45.67`
+   - **Solution**: Or edit `~/.ssh/known_hosts` and remove the line with your IP
+   
+   **Problem: "Could not resolve hostname"**
+   - **Solution**: Use the IP address instead of hostname
+   - **Solution**: Check if you copied the IP address correctly
+   
+   **Problem: "WARNING: UNPROTECTED PRIVATE KEY FILE!"**
+   - **Solution**: Set correct permissions: `chmod 400 your-key.pem`
+   
+   **💡 Pro Tips:**
+   - **Save connection details**: Create an alias in your `~/.ssh/config` file for easier connections
+   - **Use AWS Systems Manager**: Alternative to SSH (no key file needed, but requires setup)
+   - **Keep key file safe**: Never share your `.pem` file or commit it to Git
+   - **Multiple connections**: You can open multiple SSH sessions to the same server
 
 2. **Update system:**
    ```bash
