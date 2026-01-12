@@ -136,6 +136,9 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.production
+.env.production.local
 .envrc
 .venv
 env/
@@ -143,6 +146,17 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/.env.production.local
+
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.production
 
 # Spyder project settings
 .spyderproject
