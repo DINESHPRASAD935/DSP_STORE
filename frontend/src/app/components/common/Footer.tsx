@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUp, Mail } from 'lucide-react';
 import { socialMediaApi, SocialMedia } from '../../services/api';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
-import { NAV, ABOUT } from '../../constants/strings';
+import { NAV, ABOUT, FOOTER } from '../../constants/strings';
 import { normalizeArray } from '../../utils/arrayUtils';
 
 export function Footer() {
@@ -319,6 +319,7 @@ export function Footer() {
           url,
           title: config.getTitle(),
           ariaLabel: config.getAriaLabel(),
+          isEmail: config.getAriaLabel().toLowerCase() === 'email',
           bgClass: config.bgClass,
           icon: iconToUse,
           isExternal: !!config.platformNames || !!siteSettings?.whatsapp_url, // Email doesn't need target="_blank"
@@ -391,6 +392,9 @@ export function Footer() {
                 {siteSettings.description}
               </p>
             )}
+            <p className="text-gray-400 text-sm leading-relaxed max-w-xs mt-2">
+              {FOOTER.LEFT_BULLETS}
+            </p>
           </div>
 
           {/* Quick Links */}
@@ -413,16 +417,6 @@ export function Footer() {
                   {NAV.ABOUT}
                 </Link>
               </li>
-              {siteSettings?.contact_email && (
-                <li>
-                  <a 
-                    href={`mailto:${siteSettings.contact_email}`} 
-                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-200 text-sm lg:text-base inline-block"
-                  >
-                    {NAV.CONTACT}
-                  </a>
-                </li>
-              )}
             </ul>
           </div>
 
@@ -430,6 +424,7 @@ export function Footer() {
           {socialMedia.length > 0 && (
             <div>
               <h4 className="text-white font-bold text-base lg:text-lg mb-5 lg:mb-6">{ABOUT.SECTIONS.FOLLOW_US}</h4>
+              <p className="text-gray-400 text-sm mb-4 max-w-xs">{FOOTER.FOLLOW_US_TAGLINE}</p>
               <div className="flex flex-wrap gap-3">
                 {socialMedia.map((social) => {
                   // Priority: Use SVG icon if available, otherwise use API icon_url
@@ -490,23 +485,20 @@ export function Footer() {
             {/* Center - Copyright */}
               <div className="text-center">
               <p className="text-gray-400 text-xs sm:text-sm">
-                {siteSettings?.brand_name || 'Brand'} {siteSettings?.copyright_text || 'All Rights Reserved.'}
-                {siteSettings?.developer_credit && (
-                  <>
-                    {' '}Developed By{' '}
-                    {siteSettings.developer_credit_url ? (
-                      <a 
-                        href={siteSettings.developer_credit_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-cyan-400 hover:underline"
-                      >
-                        {siteSettings.developer_credit}
-                      </a>
-                    ) : (
-                      <span>{siteSettings.developer_credit}</span>
-                    )}
-                  </>
+                {FOOTER.COPYRIGHT_LINE}
+                <br className="sm:hidden" />
+                {' '}{FOOTER.BUILT_BY}{' '}
+                {siteSettings?.developer_credit_url ? (
+                  <a
+                    href={siteSettings.developer_credit_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:underline"
+                  >
+                    {siteSettings?.developer_credit || FOOTER.BUILT_BY_LINK_TEXT}
+                  </a>
+                ) : (
+                  <span>{siteSettings?.developer_credit || FOOTER.BUILT_BY_LINK_TEXT}</span>
                 )}
               </p>
             </div>
@@ -523,7 +515,9 @@ export function Footer() {
             key={index}
             href={button.url}
             {...(button.isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
-            className={`w-14 h-14 rounded-full ${button.bgClass} transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110`}
+            className={`w-14 h-14 rounded-full ${button.bgClass} transition-all duration-300 ${
+              button.isEmail ? 'flex' : 'hidden sm:flex'
+            } items-center justify-center shadow-lg hover:shadow-xl hover:scale-110`}
             title={button.title}
             aria-label={button.ariaLabel}
           >

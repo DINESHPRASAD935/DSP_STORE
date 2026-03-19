@@ -6,7 +6,6 @@ import { AdSlot, hasAdsConfigured } from '../components/AdSlot';
 import { Footer } from '../components/common/Footer';
 import { NAV, MESSAGES, PRODUCT_DETAIL } from '../constants/strings';
 import { useSiteSettings } from '../hooks/useSiteSettings';
-import React from 'react';
 
 export function ProductDetailPage() {
   const { id } = useParams();
@@ -198,11 +197,11 @@ export function ProductDetailPage() {
                 {product.badge}
               </div>
             )}
-            <div className="aspect-square rounded-2xl overflow-hidden bg-gray-900/50 backdrop-blur-lg border border-gray-800/50">
+            <div className="rounded-2xl overflow-hidden bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 w-full max-w-[360px] sm:max-w-[420px] lg:max-w-[460px] h-[360px] sm:h-[420px] lg:h-[460px] mx-auto lg:mx-0">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   // Fallback to placeholder if image fails to load
                   const target = e.target as HTMLImageElement;
@@ -246,12 +245,6 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {/* Description */}
-            <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6 mb-8">
-              <h2 className="text-xl text-white mb-4">{PRODUCT_DETAIL.ABOUT_PRODUCT}</h2>
-              <p className="text-gray-300 leading-relaxed">{product.description}</p>
-            </div>
-
             {/* CTA Button */}
             <button
               onClick={handleBuyNow}
@@ -265,6 +258,12 @@ export function ProductDetailPage() {
             <p className="text-gray-500 text-sm text-center mt-4">
               {PRODUCT_DETAIL.REDIRECT_MESSAGE}
             </p>
+
+            {/* Description */}
+            <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6 mt-8">
+              <h2 className="text-xl text-white mb-4">{PRODUCT_DETAIL.ABOUT_PRODUCT}</h2>
+              <p className="text-gray-300 leading-relaxed">{product.description}</p>
+            </div>
           </div>
         </div>
 

@@ -163,8 +163,8 @@ export const ABOUT = {
   TITLE: 'About MrDSP Hub',
   SECTIONS: {
     WHO_WE_ARE: 'Who We Are',
-    AFFILIATE_DISCLOSURE: 'Affiliate Disclosure',
-    OUR_COMMITMENT: 'Our Commitment',
+    AFFILIATE_DISCLOSURE: 'Affiliate Transparency',
+    OUR_COMMITMENT: 'What We Do',
     CONTACT_ME: 'Contact Me',
     GET_IN_TOUCH: 'Get in Touch',
     SEND_MESSAGE: 'Send a Message',
@@ -173,18 +173,34 @@ export const ABOUT = {
     FOLLOW_US: 'Follow Us',
   },
   CONTENT: {
-    WELCOME: 'Welcome to MrDSP Hub, your trusted destination for discovering premium products and exclusive deals. We are passionate creators and reviewers dedicated to bringing you honest, in-depth reviews of the best products available in the market.',
-    MISSION: 'Our mission is to help you make informed purchasing decisions by providing detailed product information, real-world testing, and authentic reviews. We carefully curate each product to ensure quality and value for our community.',
+    WELCOME:
+      'Welcome to MrDSP Hub - your go-to platform for discovering premium products, honest reviews, and real deals.',
+    MISSION:
+      'We are passionate tech enthusiasts and product reviewers who test, analyze, and simplify products so you can make smart buying decisions without confusion.',
+    TRUSTED_BY:
+      'Trusted by viewers from our MrDspHub  community available in Instagram & YouTube',
     TRANSPARENCY: 'Transparency is important to us.',
-    AFFILIATE_DISCLOSURE: 'Some of the links on this website are affiliate links, which means we may earn a commission if you make a purchase through these links. This comes at no additional cost to you and helps us maintain and improve our content.',
-    AFFILIATE_INTEGRITY: 'We only recommend products that we genuinely believe in and have either tested ourselves or thoroughly researched. Our reviews are based on honest assessments, and affiliate relationships do not influence our opinions or recommendations.',
-    COMMITMENT: 'We are committed to providing you with accurate, up-to-date information and maintaining the highest standards of integrity in all our content. Your trust is our most valuable asset, and we work hard to earn and maintain it every day.',
-    COLLABORATIONS: "We're open to collaborations for:",
+    AFFILIATE_DISCLOSURE:
+      'Some links on our website are affiliate links. This means we may earn a small commission if you purchase through them - at no extra cost to you.',
+    AFFILIATE_INTEGRITY:
+      'But here is our promise:',
+    AFFILIATE_PROMISE_ITEMS: [
+      'We never promote products just for commission',
+      'Every recommendation is based on real testing or deep research',
+    ],
+    WHAT_WE_DO_ITEMS: [
+      'In-depth product reviews (Ad vs Reality)',
+      'Real-world testing & honest opinions',
+      'Smart recommendations based on value',
+      'Curated deals that actually matter',
+    ],
+    COMMITMENT: 'We focus on quality over hype - no fake promotions, only useful products.',
+    COLLABORATIONS: "Let's Work Together",
     COLLABORATION_ITEMS: [
-      'Brand promotions and partnerships',
-      'Product review requests',
-      'Business collaborations',
-      'Sponsored content opportunities',
+      'Brand collaborations & promotions',
+      'Product reviews (Ad vs Reality testing)',
+      'Affiliate partnerships',
+      'Sponsored content & campaigns',
     ],
   },
   FORM: {
@@ -231,6 +247,11 @@ export const PAGINATION = {
 // ==================== FOOTER ====================
 export const FOOTER = {
   COPYRIGHT: BRAND.FOOTER_COPYRIGHT,
+  LEFT_BULLETS: '🔸 Premium Product Reviews 🔸 Smart Deals 🔸 Real Testing.',
+  FOLLOW_US_TAGLINE: 'Join our community for product insights & deals',
+  COPYRIGHT_LINE: '© 2026 MrDSP Hub. All rights reserved.',
+  BUILT_BY: 'Built with ❤️ by',
+  BUILT_BY_LINK_TEXT: 'DSP Tech',
 } as const;
 
 // ==================== HEADER TOP BAR ====================

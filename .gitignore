@@ -147,6 +147,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Frontend dependencies and build cache
+frontend/node_modules/
+
 # Frontend environment files
 frontend/.env
 frontend/.env.local

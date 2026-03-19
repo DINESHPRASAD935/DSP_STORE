@@ -11,6 +11,10 @@ import { NAV, ABOUT, MESSAGES } from '../constants/strings';
 import { toast } from 'sonner';
 
 export function AboutPage() {
+  // Permanently disable the contact form UI ("Send a Message") per UX request.
+  // We still keep the contact information (email/phone + business inquiries).
+  const showContactForm = false;
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -162,23 +166,28 @@ export function AboutPage() {
               <p className="text-gray-300 leading-relaxed mb-4">
                 {ABOUT.CONTENT.MISSION}
               </p>
+              <p className="text-gray-300 leading-relaxed">{ABOUT.CONTENT.TRUSTED_BY}</p>
             </div>
 
             <div>
               <h2 className="text-2xl text-white mb-4">{ABOUT.SECTIONS.AFFILIATE_DISCLOSURE}</h2>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                <strong className="text-cyan-400">{ABOUT.CONTENT.TRANSPARENCY}</strong> {ABOUT.CONTENT.AFFILIATE_DISCLOSURE}
-              </p>
-              <p className="text-gray-300 leading-relaxed">
-                {ABOUT.CONTENT.AFFILIATE_INTEGRITY}
-              </p>
+              <p className="text-gray-300 leading-relaxed mb-4">{ABOUT.CONTENT.AFFILIATE_DISCLOSURE}</p>
+              <p className="text-gray-300 leading-relaxed mb-4">{ABOUT.CONTENT.AFFILIATE_INTEGRITY}</p>
+              <ul className="text-gray-400 text-sm sm:text-base space-y-1 list-disc list-inside">
+                {ABOUT.CONTENT.AFFILIATE_PROMISE_ITEMS.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
             </div>
 
             <div>
               <h2 className="text-2xl text-white mb-4">{ABOUT.SECTIONS.OUR_COMMITMENT}</h2>
-              <p className="text-gray-300 leading-relaxed">
-                {ABOUT.CONTENT.COMMITMENT}
-              </p>
+              <ul className="text-gray-400 text-sm sm:text-base space-y-1 list-disc list-inside mb-4">
+                {ABOUT.CONTENT.WHAT_WE_DO_ITEMS.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+              <p className="text-gray-300 leading-relaxed">{ABOUT.CONTENT.COMMITMENT}</p>
             </div>
           </div>
         </section>
@@ -186,7 +195,7 @@ export function AboutPage() {
         {/* Contact Section */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-white mb-6">{ABOUT.SECTIONS.CONTACT_ME}</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className={`grid grid-cols-1 ${showContactForm ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8`}>
             {/* Contact Information */}
             <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8">
               <h3 className="text-xl text-white mb-6">{ABOUT.SECTIONS.GET_IN_TOUCH}</h3>
@@ -238,93 +247,95 @@ export function AboutPage() {
               </div>
             </div>
 
-            {/* Contact Form */}
-            <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8">
-              <h3 className="text-xl text-white mb-6">{ABOUT.SECTIONS.SEND_MESSAGE}</h3>
-              {formSubmitted ? (
-                <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-4 text-green-400">
-                  <p className="font-medium">{MESSAGES.SUCCESS.MESSAGE_SENT}</p>
-                  <p className="text-sm mt-1">{MESSAGES.SUCCESS.GET_BACK_SOON}</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {formError && (
-                    <div className="bg-red-600/20 border border-red-500/30 rounded-lg p-4 text-red-400">
-                      <p className="text-sm whitespace-pre-line">{formError}</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.NAME}</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                      placeholder={ABOUT.PLACEHOLDERS.NAME}
-                    />
+            {/* Contact Form (disabled) */}
+            {showContactForm && (
+              <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8">
+                <h3 className="text-xl text-white mb-6">{ABOUT.SECTIONS.SEND_MESSAGE}</h3>
+                {formSubmitted ? (
+                  <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-4 text-green-400">
+                    <p className="font-medium">{MESSAGES.SUCCESS.MESSAGE_SENT}</p>
+                    <p className="text-sm mt-1">{MESSAGES.SUCCESS.GET_BACK_SOON}</p>
                   </div>
-                  <div>
-                    <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.EMAIL}</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                      placeholder={ABOUT.PLACEHOLDERS.EMAIL}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.SUBJECT}</label>
-                    <select
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                    >
-                      <option value="">{ABOUT.FORM.SELECT_SUBJECT}</option>
-                      <option value="brand-promotion">{ABOUT.SUBJECT_OPTIONS.BRAND_PROMOTION}</option>
-                      <option value="product-review">{ABOUT.SUBJECT_OPTIONS.PRODUCT_REVIEW}</option>
-                      <option value="collaboration">{ABOUT.SUBJECT_OPTIONS.COLLABORATION}</option>
-                      <option value="general">{ABOUT.SUBJECT_OPTIONS.GENERAL}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.MESSAGE}</label>
-                    <textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      required
-                      rows={5}
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
-                      placeholder={ABOUT.PLACEHOLDERS.MESSAGE}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {ABOUT.FORM.SENDING}
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5" />
-                        {ABOUT.FORM.SEND_MESSAGE}
-                      </>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {formError && (
+                      <div className="bg-red-600/20 border border-red-500/30 rounded-lg p-4 text-red-400">
+                        <p className="text-sm whitespace-pre-line">{formError}</p>
+                      </div>
                     )}
-                  </button>
-                </form>
-              )}
-            </div>
+                    <div>
+                      <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.NAME}</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                        placeholder={ABOUT.PLACEHOLDERS.NAME}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.EMAIL}</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                        placeholder={ABOUT.PLACEHOLDERS.EMAIL}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.SUBJECT}</label>
+                      <select
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      >
+                        <option value="">{ABOUT.FORM.SELECT_SUBJECT}</option>
+                        <option value="brand-promotion">{ABOUT.SUBJECT_OPTIONS.BRAND_PROMOTION}</option>
+                        <option value="product-review">{ABOUT.SUBJECT_OPTIONS.PRODUCT_REVIEW}</option>
+                        <option value="collaboration">{ABOUT.SUBJECT_OPTIONS.COLLABORATION}</option>
+                        <option value="general">{ABOUT.SUBJECT_OPTIONS.GENERAL}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 mb-2 text-sm">{ABOUT.FORM.MESSAGE}</label>
+                      <textarea
+                        name="message"
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        required
+                        rows={5}
+                        className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
+                        placeholder={ABOUT.PLACEHOLDERS.MESSAGE}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          {ABOUT.FORM.SENDING}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          {ABOUT.FORM.SEND_MESSAGE}
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
