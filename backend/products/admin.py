@@ -30,6 +30,10 @@ class BadgeAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    actions = ['delete_selected']
+    actions_on_top = True
+    actions_on_bottom = True
+
     list_display = ['name', 'slug', 'tenant', 'created_at']
     list_filter = ['tenant', 'created_at']
     prepopulated_fields = {'slug': ('name',)}
@@ -60,14 +64,6 @@ class ProductAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-
-
-@admin.register(ProductSocialMediaLink)
-class ProductSocialMediaLinkAdmin(admin.ModelAdmin):
-    list_display = ['product', 'platform_name', 'url', 'description', 'order']
-    list_filter = ['platform_name', 'product']
-    search_fields = ['product__name', 'platform_name', 'url', 'description']
-    ordering = ['product', 'order', 'platform_name']
 
 
 @admin.register(UserActivity)

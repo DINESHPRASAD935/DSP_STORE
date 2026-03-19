@@ -152,8 +152,12 @@ This message was sent from the contact form on {request.build_absolute_uri('/')}
         """.strip()
         
         try:
-            # Get from email from SiteSettings or .env
-            from_email = site_settings.email_from_address or django_settings.DEFAULT_FROM_EMAIL
+            # Get from email from SiteSettings (DB-first) with safe fallback.
+            from_email = (
+                site_settings.email_from_address
+                or site_settings.contact_email
+                or 'noreply@mrdsphub.com'
+            )
             
             # Send email to site admin using SiteSettings configuration
             send_email_with_config(

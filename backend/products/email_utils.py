@@ -40,14 +40,24 @@ def get_email_config(site_settings=None):
         config['EMAIL_PORT'] = int(os.environ.get('EMAIL_PORT', '587'))
     
     # Email TLS
-    if site_settings and site_settings.email_use_tls is not None:
-        config['EMAIL_USE_TLS'] = site_settings.email_use_tls
+    smtp_configured = bool(
+        site_settings
+        and (
+            site_settings.email_backend
+            or site_settings.email_host
+            or site_settings.email_port
+        )
+    )
+    if smtp_configured:
+        # SiteSettings TLS/SSL should apply only when the core SMTP details are present;
+        # otherwise SiteSettings' model defaults would incorrectly override .env.
+        config['EMAIL_USE_TLS'] = bool(site_settings.email_use_tls)
     else:
         config['EMAIL_USE_TLS'] = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
     
     # Email SSL
-    if site_settings and site_settings.email_use_ssl is not None:
-        config['EMAIL_USE_SSL'] = site_settings.email_use_ssl
+    if smtp_configured:
+        config['EMAIL_USE_SSL'] = bool(site_settings.email_use_ssl)
     else:
         config['EMAIL_USE_SSL'] = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
     
@@ -55,14 +65,11 @@ def get_email_config(site_settings=None):
     config['EMAIL_HOST_USER'] = os.environ.get('EMAIL_HOST_USER', '')
     config['EMAIL_HOST_PASSWORD'] = os.environ.get('EMAIL_HOST_PASSWORD', '')
     
-    # From email address
-    if site_settings and site_settings.email_from_address:
-        config['DEFAULT_FROM_EMAIL'] = site_settings.email_from_address
-    else:
-        config['DEFAULT_FROM_EMAIL'] = os.environ.get(
-            'DEFAULT_FROM_EMAIL',
-            config['EMAIL_HOST_USER'] or 'noreply@mrdsphub.com'
-        )
+    # From email address (DB-first; .env DEFAULT_FROM_EMAIL should not be required)
+    default_from = None
+    if site_settings:
+        default_from = site_settings.email_from_address or site_settings.contact_email
+    config['DEFAULT_FROM_EMAIL'] = default_from or 'noreply@mrdsphub.com'
     
     return config
 

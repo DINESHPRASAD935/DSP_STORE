@@ -32,12 +32,13 @@ python manage.py createsuperuser
 python manage.py loaddata initial_data.json  # If you create this
 ```
 
-6. **Run development server:**
+6. **Run development server (port 9000):**
 ```bash
-python manage.py runserver
+python manage.py runserver 9000
 ```
+Or for production: `gunicorn dsp_store.wsgi:application --bind 0.0.0.0:9000`
 
-The API will be available at `http://localhost:8000/api/`
+The API will be available at `http://localhost:9000/api/`
 
 ## API Endpoints
 
