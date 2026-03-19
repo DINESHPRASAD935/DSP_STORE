@@ -9,3 +9,5 @@ dj-database-url==2.1.0
 django-ratelimit==4.1.0
 # Environment variable loader
 python-dotenv==1.0.0
+# Static files in production (used by settings.py)
+whitenoise==6.6.0

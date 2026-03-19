@@ -307,7 +307,7 @@ class SiteSettings(models.Model):
     email_from_address = models.EmailField(
         blank=True,
         null=True,
-        help_text="Email address to send emails from (e.g., noreply@mrdsphub.com). Falls back to .env DEFAULT_FROM_EMAIL if not set."
+        help_text="Email address to send emails from (e.g., noreply@mrdsphub.com). Falls back to tenant contact_email (and then a safe default) if not set."
     )
     email_backend = models.CharField(
         max_length=200,

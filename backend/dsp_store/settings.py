@@ -20,9 +20,17 @@ except ImportError:
 # ===============================
 # CORE SETTINGS
 # ===============================
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    # Allow local dev to boot without a secret, but fail in production.
+    if DEBUG:
+        from django.core.management.utils import get_random_secret_key
+        SECRET_KEY = get_random_secret_key()
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DEBUG=False")
 
 ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
@@ -55,6 +63,7 @@ INSTALLED_APPS = [
 # ===============================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,6 +84,26 @@ MIDDLEWARE = [
 ROOT_URLCONF = "dsp_store.urls"
 
 WSGI_APPLICATION = "dsp_store.wsgi.application"
+
+
+# ===============================
+# TEMPLATES (required for admin)
+# ===============================
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
 
 
 # ===============================
@@ -101,21 +130,16 @@ else:
 
 
 # ===============================
-# CACHING
+# CACHING (django_ratelimit requires Redis/Memcached for atomic increment)
 # ===============================
-if DEBUG:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        }
+# Local dev: start Redis with `redis-server` or `docker run -d -p 6379:6379 redis`
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
     }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
-        }
-    }
+}
 
 
 # ===============================
@@ -180,6 +204,19 @@ CORS_ALLOWED_ORIGINS = [
     "https://mrdsphub-frontend.s3-website.ap-south-2.amazonaws.com",
 ]
 
+# Allow local dev origins (and allow override via backend/.env).
+# Without this, browser requests from `http://localhost:5173` get blocked by CORS
+# and Axios surfaces it as a generic "Network error".
+env_cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").strip()
+if env_cors_origins:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in env_cors_origins.split(",") if o.strip()]
+elif DEBUG:
+    CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ]
+
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -211,6 +248,14 @@ CSRF_TRUSTED_ORIGINS = [
     "https://api.mrdsphub.in",
     "https://mrdsphub-frontend.s3-website.ap-south-2.amazonaws.com",
 ]
+
+# Allow local dev for unsafe HTTP methods (POST/PUT/PATCH) when using cookies/sessions.
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS + [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ]
 
 
 # ===============================
@@ -244,13 +289,16 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").lower() == "true"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+# Optional; email sending in this project prefers SiteSettings.email_from_address and
+# falls back to a safe constant if DEFAULT_FROM_EMAIL is not provided.
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@mrdsphub.com")
 
 
 # ===============================
 # LOGGING
 # ===============================
 if not DEBUG:
+    (BASE_DIR / "logs").mkdir(exist_ok=True)
     LOGGING = {
         "version": 1,
         "disable_existing_loggers": False,
