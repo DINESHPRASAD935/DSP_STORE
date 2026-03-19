@@ -60,8 +60,8 @@ const getApiBaseUrl = (): string => {
     }
   }
   
-  // Priority 3: Default to localhost for development
-  return 'http://localhost:8000/api';
+  // Priority 3: Default to localhost for development (backend runs on port 9000)
+  return 'http://localhost:9000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

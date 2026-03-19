@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Star } from 'lucide-react';
+import { ExternalLink, ShoppingCart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '../services/api';
 
@@ -8,10 +8,14 @@ interface ProductCardGlassProps {
 }
 
 export function ProductCardGlass({ product }: ProductCardGlassProps) {
-  // Handle category - can be string or object
-  const categoryName = typeof product.category === 'string' 
-    ? product.category 
-    : product.category.name;
+  const handleBuyNowClick = (e: React.MouseEvent) => {
+    // Prevent the parent card <Link> navigation
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!product.affiliateLink) return;
+    window.open(product.affiliateLink, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <Link to={`/product/${product.id}`} className="group block">
@@ -54,15 +58,27 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
             </div>
           )}
           
-          {/* CTA Button */}
-          <div className="flex items-center justify-between">
+          {/* CTA Row */}
+          <div className="flex items-center justify-between gap-3">
             <span className="text-cyan-400 text-sm flex items-center gap-1">
-              View Deal
+              View More
               <ExternalLink className="w-4 h-4" />
             </span>
-            <span className="px-3 py-1 bg-gray-800/50 text-gray-300 text-xs rounded-full">
-              {categoryName}
-            </span>
+
+            <div className="flex items-center gap-2">
+              {product.affiliateLink && (
+                <button
+                  type="button"
+                  onClick={handleBuyNowClick}
+                  className="px-3 py-1.5 lg:px-2 lg:py-1 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs lg:text-[11px] hover:from-cyan-500 hover:to-blue-500 transition-all shadow shadow-cyan-500/20 flex items-center gap-1"
+                  aria-label="Buy now on partner site"
+                  title="Buy now on partner site"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
+                  Buy Now
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
