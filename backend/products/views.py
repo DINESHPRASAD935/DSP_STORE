@@ -184,7 +184,7 @@ Your message:
 {validated_data['message']}
 
 Best regards,
-{site_settings.brand_name or 'MrDSP Hub'} Team
+{site_settings.brand_name or 'Mr DSP Hub'} Team
                         """.strip(),
                         recipient_list=[validated_data['email']],
                         from_email=from_email,

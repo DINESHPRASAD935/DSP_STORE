@@ -241,7 +241,7 @@ class SiteSettings(models.Model):
     # Branding
     brand_name = models.CharField(
         max_length=100,
-        default='MrDSP Hub',
+        default='Mr DSP Hub',
         help_text="Brand/Company name displayed throughout the site"
     )
     tagline = models.CharField(
