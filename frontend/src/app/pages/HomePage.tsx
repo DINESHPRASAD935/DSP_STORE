@@ -14,6 +14,8 @@ import { useCategories } from '../hooks/useCategories';
 import { usePagination } from '../hooks/usePagination';
 import { normalizeArray } from '../utils/arrayUtils';
 import { NAV, SEARCH, MESSAGES, PAGINATION } from '../constants/strings';
+import { Seo } from '../components/Seo';
+import { getSiteUrl } from '../utils/siteUrl';
 import React from 'react';
 
 export function HomePage() {
@@ -134,8 +136,32 @@ export function HomePage() {
     }
   }, [categories]);
 
+  const siteUrl = getSiteUrl();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={siteSettings.brand_name}
+        description={siteSettings.description}
+        path="/"
+        siteName={siteSettings.brand_name}
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: siteSettings.brand_name,
+            url: siteUrl,
+            description: siteSettings.description,
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: siteSettings.brand_name,
+            url: siteUrl,
+            description: siteSettings.description,
+          },
+        ]}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

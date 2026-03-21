@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Star, ShoppingCart, Loader2 } from 'lucide-react';
 import { productApi, Product } from '../services/api';
 import { AdSlot, hasAdsConfigured } from '../components/AdSlot';
 import { Footer } from '../components/common/Footer';
 import { NAV, MESSAGES, PRODUCT_DETAIL } from '../constants/strings';
 import { useSiteSettings } from '../hooks/useSiteSettings';
+import { Seo } from '../components/Seo';
+import { absoluteUrl, getSiteUrl } from '../utils/siteUrl';
+import { plainTextExcerpt } from '../utils/seoText';
 
 export function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { siteSettings } = useSiteSettings();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -80,6 +84,12 @@ export function ProductDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center">
+        <Seo
+          title={`Loading… | ${siteSettings.brand_name}`}
+          description={siteSettings.description}
+          path={location.pathname}
+          siteName={siteSettings.brand_name}
+        />
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading product...</p>
@@ -91,6 +101,13 @@ export function ProductDetailPage() {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center">
+        <Seo
+          title={`Product not found | ${siteSettings.brand_name}`}
+          description={siteSettings.description}
+          path={location.pathname}
+          siteName={siteSettings.brand_name}
+          noindex
+        />
         <div className="text-center">
           <h2 className="text-2xl text-white mb-4">{MESSAGES.ERROR.PRODUCT_NOT_FOUND}</h2>
           <p className="text-gray-400 mb-4">{error || MESSAGES.ERROR.PRODUCT_NOT_EXIST}</p>
@@ -112,8 +129,34 @@ export function ProductDetailPage() {
 
   const categoryName = getCategoryName(product.category);
 
+  const metaDesc =
+    plainTextExcerpt(product.description) ||
+    product.tagline ||
+    siteSettings.description;
+  const siteUrl = getSiteUrl();
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: plainTextExcerpt(product.description, 8000),
+    image: absoluteUrl(product.image, siteUrl),
+    brand: {
+      '@type': 'Brand',
+      name: siteSettings.brand_name,
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={`${product.name} | ${siteSettings.brand_name}`}
+        description={metaDesc}
+        path={location.pathname}
+        image={product.image}
+        ogType="product"
+        siteName={siteSettings.brand_name}
+        jsonLd={productJsonLd}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

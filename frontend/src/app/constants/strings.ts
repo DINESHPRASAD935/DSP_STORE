@@ -6,10 +6,10 @@
 
 // ==================== BRANDING ====================
 export const BRAND = {
-  NAME: 'MrDSP Hub',
+  NAME: 'Mr DSP Hub',
   TAGLINE: 'Premium Picks',
-  LOGO_ALT: 'MrDSP Hub Logo',
-  FOOTER_COPYRIGHT: '© 2026 MrDSP Hub. All affiliate links are for demonstration purposes.',
+  LOGO_ALT: 'Mr DSP Hub Logo',
+  FOOTER_COPYRIGHT: '© 2026 Mr DSP Hub. All affiliate links are for demonstration purposes.',
   DESCRIPTION: 'Your trusted destination for premium product reviews and exclusive deals.',
 } as const;
 
@@ -160,7 +160,7 @@ export const ADMIN = {
 
 // ==================== ABOUT PAGE ====================
 export const ABOUT = {
-  TITLE: 'About MrDSP Hub',
+  TITLE: 'About Mr DSP Hub',
   SECTIONS: {
     WHO_WE_ARE: 'Who We Are',
     AFFILIATE_DISCLOSURE: 'Affiliate Transparency',
@@ -174,7 +174,7 @@ export const ABOUT = {
   },
   CONTENT: {
     WELCOME:
-      'Welcome to MrDSP Hub - your go-to platform for discovering premium products, honest reviews, and real deals.',
+      'Welcome to Mr DSP Hub - your go-to platform for discovering premium products, honest reviews, and real deals.',
     MISSION:
       'We are passionate tech enthusiasts and product reviewers who test, analyze, and simplify products so you can make smart buying decisions without confusion.',
     TRUSTED_BY:
@@ -249,7 +249,7 @@ export const FOOTER = {
   COPYRIGHT: BRAND.FOOTER_COPYRIGHT,
   LEFT_BULLETS: '🔸 Premium Product Reviews 🔸 Smart Deals 🔸 Real Testing.',
   FOLLOW_US_TAGLINE: 'Join our community for product insights & deals',
-  COPYRIGHT_LINE: '© 2026 MrDSP Hub. All rights reserved.',
+  COPYRIGHT_LINE: '© 2026 Mr DSP Hub. All rights reserved.',
   BUILT_BY: 'Built with ❤️ by',
   BUILT_BY_LINK_TEXT: 'DSP Tech',
 } as const;

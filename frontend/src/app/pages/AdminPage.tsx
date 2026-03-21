@@ -22,6 +22,7 @@ import {
 import { productApi, categoryApi, badgeApi, siteSettingsApi, Product, Category, Badge, ProductCreateData, SiteSettings } from '../services/api';
 import { NAV, ADMIN, MESSAGES } from '../constants/strings';
 import { useSiteSettings } from '../hooks/useSiteSettings';
+import { Seo } from '../components/Seo';
 
 type Tab = 'dashboard' | 'add' | 'list' | 'archived' | 'settings';
 
@@ -329,6 +330,13 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={`Admin | ${siteSettings.brand_name}`}
+        description="Store administration — not indexed for search."
+        path="/adminmrdsp"
+        siteName={siteSettings.brand_name}
+        noindex
+      />
       {/* Header */}
       <header className="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1086,7 +1094,7 @@ export function AdminPage() {
                           value={settingsFormData.brand_name || ''}
                           onChange={(e) => setSettingsFormData({...settingsFormData, brand_name: e.target.value})}
                           className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700/50 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                          placeholder="MrDSP Hub"
+                          placeholder="Mr DSP Hub"
                         />
                       </div>
                       <div>

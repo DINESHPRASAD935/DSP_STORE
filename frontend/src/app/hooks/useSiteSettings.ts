@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { siteSettingsApi, SiteSettings } from '../services/api';
 
+const LEGACY_BRAND_NAME = 'Affiliate Products Website';
+const DEFAULT_BRAND_NAME = 'Mr DSP Hub';
+
 const DEFAULT_SETTINGS: SiteSettings = {
-  brand_name: 'MrDSP Hub',
+  brand_name: DEFAULT_BRAND_NAME,
   tagline: 'Premium Picks',
   description: 'Your trusted destination for premium product reviews and exclusive deals.',
   logo_url: null,
@@ -28,7 +31,11 @@ export function useSiteSettings() {
         setLoading(true);
         setError(null);
         const data = await siteSettingsApi.get();
-        setSettings(data);
+        const brand_name =
+          data.brand_name === LEGACY_BRAND_NAME
+            ? DEFAULT_BRAND_NAME
+            : data.brand_name;
+        setSettings({ ...data, brand_name });
       } catch (err) {
         console.error('Error fetching site settings:', err);
         setError('Failed to load site settings');

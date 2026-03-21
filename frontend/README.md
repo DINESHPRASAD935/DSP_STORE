@@ -1,7 +1,7 @@
 
-  # Affiliate Products Website
+  # Mr DSP Hub
 
-  This is a code bundle for Affiliate Products Website. The original project is available at https://www.figma.com/design/a8fyhKex40B1ndCko23xSH/Affiliate-Products-Website.
+  Storefront UI for Mr DSP Hub. The original Figma reference: https://www.figma.com/design/a8fyhKex40B1ndCko23xSH/Affiliate-Products-Website.
 
   ## Running the code
 

@@ -8,6 +8,7 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 import { createInputHandler } from '../utils/formUtils';
 import { contactApi } from '../services/api';
 import { NAV, ABOUT, MESSAGES } from '../constants/strings';
+import { Seo } from '../components/Seo';
 import { toast } from 'sonner';
 
 export function AboutPage() {
@@ -84,6 +85,12 @@ export function AboutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={`${ABOUT.TITLE} | ${siteSettings.brand_name}`}
+        description={ABOUT.CONTENT.WELCOME}
+        path="/about"
+        siteName={siteSettings.brand_name}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

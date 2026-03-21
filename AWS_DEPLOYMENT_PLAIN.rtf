@@ -1,0 +1,250 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Times New Roman;}}
+\fs24
+\pard
+\b mrdsphub.in AWS Free Tier Deployment Guide (Plain)\b0\par
+\pard
+\pard
+\b Overview (low cost architecture)\b0\par
+\par
+User \rightarrow CloudFront (HTTPS) \rightarrow Frontend hosted on S3 (SPA)\par
+User \rightarrow CloudFront (HTTPS) \rightarrow API hosted on EC2 (Gunicorn on port 9000)\par
+Images \rightarrow S3 Media bucket (public read)\par
+\par
+\pard
+\b Prerequisites\par
+\b0
+\par
+1) AWS account\par
+2) Domain registered in Route 53 hosted zone: mrdsphub.in\par
+3) Access to EC2 using a .pem key\par
+4) AWS CLI installed and configured on your local machine (WSL recommended)\par
+5) This codebase cloned locally at DSP_STORE/DSP_STORE\par
+\pard
+\pard
+\b Step 1 - Request ACM certificate (for CloudFront)\b0\par
+\par
+1) AWS Console \rightarrow ACM \rightarrow Request certificate\par
+2) Public certificate\par
+3) Add names (all at once):\par
+   - mrdsphub.in\par
+   - www.mrdsphub.in\par
+   - *.mrdsphub.in (covers api.mrdsphub.in)\par
+4) DNS validation via Route 53\par
+5) IMPORTANT: CloudFront custom domain certificates must be in us-east-1.\par
+\pard
+\pard
+\b Step 2 - Create S3 bucket for Frontend\par
+\b0
+\par
+1) AWS Console \rightarrow S3 \rightarrow Create bucket\par
+2) Bucket name example: mrdsphub-frontend\par
+3) Keep Block Public Access ON (recommended) for frontend\par
+4) If the console asks, set Static website hosting:\par
+   - Index document: index.html\par
+   - Error document: index.html (SPA)\par
+5) Create and set CloudFront Origin Access (OAI or OAC) from the CloudFront step.\par
+\par
+\pard
+\b Step 3 - Create S3 bucket for Media (Images)\b0\par
+\par
+1) AWS Console \rightarrow S3 \rightarrow Create bucket\par
+2) Bucket name example: mrdsphub-media\par
+3) Block Public Access: UNCHECK Block all public access (so product images load)\par
+4) Add bucket policy for public read GET of objects.\par
+5) Upload product images into this bucket.\par
+6) In Django Admin, you store image URLs that point to objects in this bucket.\par
+\pard
+\pard
+\b Step 4 - Create EC2 instance for Backend\par
+\b0
+\par
+1) AWS Console \rightarrow EC2 \rightarrow Launch instance\par
+2) AMI: Amazon Linux 2023\par
+3) Instance type: t2.micro (Free Tier)\par
+4) Key pair: select your key pair\par
+5) Create Security Group with inbound rules:\par
+   - SSH (22): Your IP only (recommended)\par
+   - Custom TCP 9000: 0.0.0.0/0 for setup/testing (later can restrict)\par
+6) Launch the instance.\par
+7) (Recommended) Allocate and associate an Elastic IP so your public IP stays stable.\par
+\pard
+\pard
+\b Step 5 - Backend setup on EC2 (Django + Gunicorn on 9000)\b0\par
+\par
+1) SSH into EC2\par
+2) Install dependencies:\par
+   sudo dnf update -y\par
+   sudo dnf install -y python3.11 python3.11-pip git redis6\par
+   sudo systemctl enable redis\par
+   sudo systemctl start redis\par
+3) Clone project:\par
+   cd /home/ec2-user\par
+   git clone https://github.com/YOUR_USERNAME/DSP_STORE.git\par
+4) Create venv and install requirements:\par
+   cd /home/ec2-user/DSP_STORE/backend\par
+   python3.11 -m venv venv\par
+   source venv/bin/activate\par
+   pip install -r requirements.txt\par
+   pip install gunicorn\par
+5) Create backend environment file:\par
+   nano /home/ec2-user/DSP_STORE/backend/.env\par
+   Use values like:\par
+   DEBUG=False\par
+   DJANGO_SECRET_KEY=YOUR_SECRET\par
+   ALLOWED_HOSTS=mrdsphub.in,www.mrdsphub.in,api.mrdsphub.in,127.0.0.1,YOUR_EC2_PUBLIC_IP\par
+   REDIS_URL=redis://127.0.0.1:6379/0\par
+   CORS_ALLOWED_ORIGINS=https://mrdsphub.in,https://www.mrdsphub.in,https://api.mrdsphub.in\par
+   SECURE_SSL_REDIRECT=False\par
+6) Run migrations and collect static:\par
+   source venv/bin/activate\par
+   python manage.py migrate\par
+   python manage.py collectstatic --noinput\par
+7) Create a superuser (once):\par
+   python manage.py createsuperuser\par
+8) Start Gunicorn test (port 9000):\par
+   gunicorn dsp_store.wsgi:application --bind 0.0.0.0:9000\par
+   Test quickly from EC2:\par
+   curl -sL http://127.0.0.1:9000/api/ | head\par
+   Stop with Ctrl+C.\par
+9) Create systemd service:\par
+   sudo nano /etc/systemd/system/dsp-store.service\par
+   Use:\par
+   [Unit]\par
+   Description=DSP Store Gunicorn\par
+   After=network.target redis6.service\par
+   Wants=redis6.service\par
+   [Service]\par
+   User=ec2-user\par
+   Group=ec2-user\par
+   WorkingDirectory=/home/ec2-user/DSP_STORE/backend\par
+   EnvironmentFile=/home/ec2-user/DSP_STORE/backend/.env\par
+   ExecStart=/home/ec2-user/DSP_STORE/backend/venv/bin/gunicorn dsp_store.wsgi:application --bind 0.0.0.0:9000\par
+   Restart=always\par
+   RestartSec=5\par
+   [Install]\par
+   WantedBy=multi-user.target\par
+10) Reload and start:\par
+   sudo systemctl daemon-reload\par
+   sudo systemctl enable dsp-store\par
+   sudo systemctl start dsp-store\par
+   sudo systemctl status dsp-store --no-pager\par
+\par
+\pard
+\b Step 6 - Create CloudFront distribution for API\par
+\b0
+\par
+1) CloudFront \rightarrow Create distribution \rightarrow Web\par
+2) Distribution name example: mrdsphub-api\par
+3) Origin:\par
+   - Origin domain: EC2 Public IPv4 DNS hostname (NOT raw IP)\par
+   - Origin protocol policy: HTTP only\par
+   - Origin port: 9000\par
+4) Alternate domain names (CNAME): api.mrdsphub.in\par
+5) Custom SSL certificate: select ACM cert covering *.mrdsphub.in\par
+6) Viewer protocol policy: Redirect HTTP to HTTPS\par
+7) Cache policy: CachingDisabled (recommended for API)\par
+8) Enable the distribution and wait until status is Deployed.\par
+\par
+\pard
+\b Step 7 - Create CloudFront distribution for Frontend (S3)\b0\par
+\par
+1) CloudFront \rightarrow Create distribution \rightarrow Web\par
+2) Origin:\par
+   - Origin domain: S3 bucket mrdsphub-frontend\par
+3) Alternate domain names (CNAME):\par
+   - mrdsphub.in\par
+   - www.mrdsphub.in\par
+4) Custom SSL certificate: select ACM cert covering mrdsphub.in and *.mrdsphub.in\par
+5) Default root object: index.html\par
+6) Viewer protocol policy: Redirect HTTP to HTTPS\par
+7) Enable the distribution and wait until status is Deployed.\par
+\par
+\pard
+\b Step 8 - Route 53 records\par
+\b0
+\par
+In Route 53 hosted zone mrdsphub.in, create/update these records as ALIAS to CloudFront:\par
+1) mrdsphub.in\par
+   - A: Alias to frontend CloudFront distribution\par
+   - AAAA (optional): Alias to frontend CloudFront distribution\par
+2) www.mrdsphub.in\par
+   - A: Alias to frontend CloudFront distribution\par
+   - AAAA (optional): Alias to frontend CloudFront distribution\par
+3) api.mrdsphub.in\par
+   - A: Alias to API CloudFront distribution\par
+   - AAAA (optional): Alias to API CloudFront distribution\par
+\par
+\pard
+\b Step 9 - Upload frontend build to S3 and invalidate cache\par
+\b0
+\par
+On your local machine (WSL), build React/Vite frontend and upload:\par
+1) cd /home/dinesh/DSP_STORE/DSP_STORE/frontend\par
+2) Ensure in frontend/.env you have:\par
+   VITE_API_BASE_URL=https://api.mrdsphub.in/api\par
+3) Build:\par
+   npm ci\par
+   npm run build\par
+4) Upload to S3:\par
+   aws s3 sync dist/ s3://mrdsphub-frontend/ --delete\par
+5) Invalidate CloudFront frontend:\par
+   aws cloudfront create-invalidation --distribution-id FRONTEND_DIST_ID --paths \"/*\"\par
+\par
+\pard
+\b Step 10 - Verify deployment\par
+\b0
+\par
+Run these checks:\par
+1) API:\par
+   curl -sL https://api.mrdsphub.in/api/ | head\par
+2) Frontend (should return HTML):\par
+   curl -I https://mrdsphub.in\par
+3) Frontend www:\par
+   curl -I https://www.mrdsphub.in\par
+\par
+Open in browser:\par
+   https://mrdsphub.in\par
+   https://www.mrdsphub.in\par
+\par
+\pard
+\b Admin URL (to add products)\par
+\b0
+\par
+Django admin is on the backend domain:\par
+   https://api.mrdsphub.in/mrdspadmin/\par
+\par
+\pard
+\b Redeploy / Update when you change code\par
+\b0
+\par
+Backend changes (Python / Django)\par
+1) SSH into EC2\par
+2) cd /home/ec2-user/DSP_STORE/backend\par
+3) git pull\par
+4) source venv/bin/activate\par
+5) pip install -r requirements.txt (only if requirements changed)\par
+6) python manage.py migrate (only if migrations/models changed)\par
+7) python manage.py collectstatic --noinput (safe to run when static may change)\par
+8) sudo systemctl restart dsp-store\par
+9) Test API:\par
+   curl -sL https://api.mrdsphub.in/api/products/ | head\par
+\par
+Frontend changes (React/Vite)\par
+1) On local machine, cd /home/dinesh/DSP_STORE/DSP_STORE/frontend\par
+2) npm run build\par
+3) aws s3 sync dist/ s3://mrdsphub-frontend/ --delete\par
+4) aws cloudfront create-invalidation --distribution-id FRONTEND_DIST_ID --paths \"/*\"\par
+\par
+If both backend and frontend changed, do both pipelines.\par
+\par
+\pard
+\b Notes\par
+\b0
+\par
+1) For CloudFront + Django HTTPS redirect behavior, SECURE_SSL_REDIRECT=False in EC2 .env is recommended for this setup.\par
+2) Keep only one enabled frontend CloudFront distribution and one enabled API CloudFront distribution to avoid CNAME conflicts.\par
+3) Keep CloudFront API cache disabled (or minimal TTL) for API endpoints.\par
+4) Use invalidation after uploading new frontend files.\par
+}
+
