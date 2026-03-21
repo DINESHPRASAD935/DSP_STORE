@@ -1,6 +1,6 @@
 # DSP Store Backend
 
-Django REST Framework backend for the Affiliate Products Website.
+Django REST Framework backend for Mr DSP Hub.
 
 ## Setup Instructions
 
