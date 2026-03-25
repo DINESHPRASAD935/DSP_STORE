@@ -147,6 +147,15 @@ class Product(models.Model):
     )
     badge = models.ForeignKey(Badge, on_delete=models.SET_NULL, blank=True, null=True, related_name='products')
     rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
+    # Product serial number used to select recommended products for a blog post.
+    # Admins can assign a serial number in /adminui and then reference those numbers
+    # from BlogPost.recommended_product_numbers in Django Admin.
+    admin_number = models.PositiveIntegerField(
+        'Serial number',
+        blank=True,
+        null=True,
+        help_text='Serial number used by blog “Recommended products” selection (in order).',
+    )
     is_active = models.BooleanField(default=True)
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -174,6 +183,62 @@ class ProductSocialMediaLink(models.Model):
     class Meta:
         ordering = ['order', 'platform_name']
         unique_together = ['product', 'platform_name', 'url']
+
+
+class BlogPost(models.Model):
+    """
+    Blog post / SEO landing page content managed via Django admin.
+    Designed for multi-tenant sites (same pattern as Products).
+    """
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='blog_posts',
+        help_text="Tenant this blog post belongs to",
+    )
+    title = models.CharField(max_length=220)
+    slug = models.SlugField(blank=True)
+    excerpt = models.TextField(blank=True, default='')
+    content = models.TextField()
+    cover_image = models.URLField(blank=True, null=True)
+    author_name = models.CharField(max_length=120, blank=True, default='')
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='blog_posts',
+        help_text="Optional category for internal linking",
+    )
+    # Ordered list of Product.admin_number (serial number) values to show in the "Recommended Products" section.
+    # Example: [1, 5, 9]
+    recommended_product_numbers = models.JSONField(
+        'Recommended product serial numbers',
+        blank=True,
+        default=list,
+        help_text='Ordered list of Product serial numbers to show as recommended products for this blog post (order preserved).',
+    )
+    is_active = models.BooleanField(default=True)
+    is_archived = models.BooleanField(default=False)
+    published_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-fill slug if not provided.
+        if not self.slug:
+            self.slug = slugify(self.title)
+        if self.published_at is None:
+            self.published_at = self.updated_at or None
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['-published_at', '-updated_at']
+        unique_together = [['tenant', 'slug']]
 
 
 # Future models for analytics and chatbot

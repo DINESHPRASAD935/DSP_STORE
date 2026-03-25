@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 
-Disallow: /adminmrdsp
+Disallow: /adminui
 
 Sitemap: https://mrdsphub.in/sitemap.xml

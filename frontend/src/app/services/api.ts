@@ -71,12 +71,31 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 30000, // 30 seconds timeout
 });
 
 // Request interceptor (for adding auth tokens in future)
 api.interceptors.request.use(
   (config) => {
+    // For session-authenticated admin endpoints, Django CSRF expects the token header.
+    // We read it from the `csrftoken` cookie (set by `/api/admin/csrf/`).
+    const getCookieValue = (name: string): string | null => {
+      if (typeof document === 'undefined') return null;
+      const match = document.cookie.match(new RegExp('(^|;\\\\s*)' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    const method = (config.method || 'get').toLowerCase();
+    const isUnsafe = !['get', 'head', 'options', 'trace'].includes(method);
+    if (isUnsafe) {
+      const csrftoken = getCookieValue('csrftoken');
+      if (csrftoken) {
+        config.headers = config.headers || {};
+        (config.headers as any)['X-CSRFToken'] = csrftoken;
+      }
+    }
+
     // Add auth token if available
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -137,10 +156,18 @@ export interface Product {
   image: string;
   category: string | { id: number; name: string; slug: string };
   affiliateLink: string;
+  price?: string | number;
+  currency?: string;
+  admin_number?: number | null;
   /** Partner marketplace label for the product-page redirect line (e.g. Amazon, Flipkart). */
   affiliateStoreName?: string;
   badge?: string;
   rating?: number;
+  verdict?: 'worth' | 'not_worth' | string;
+  is_trending?: boolean;
+  pros?: string[];
+  cons?: string[];
+  faqs?: Array<{ question: string; answer: string }>;
   social_media_links?: ProductSocialMediaLink[];
   is_active?: boolean;
   is_archived?: boolean;
@@ -164,9 +191,33 @@ export interface ProductCreateData {
   affiliateStoreName?: string;
   badge_id?: number | null;
   rating?: number;
+  admin_number?: number | null;
 }
 
 export interface ProductUpdateData extends Partial<ProductCreateData> {
+  is_active?: boolean;
+  is_archived?: boolean;
+}
+
+export interface BlogPostCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content?: string;
+  cover_image?: string | null;
+  author_name?: string;
+  category?: BlogPostCategory | string | null;
+  recommended_product_numbers?: number[];
+  recommended_products?: Product[];
+  published_at?: string;
+  updated_at?: string;
   is_active?: boolean;
   is_archived?: boolean;
 }
@@ -180,6 +231,7 @@ export const productApi = {
     category?: string;
     search?: string;
     page?: number;
+    page_size?: number;
     ordering?: string;
     exclude_id?: number;
   }) => {
@@ -236,6 +288,26 @@ export const productApi = {
   },
 };
 
+// Blog posts
+export const blogApi = {
+  getAll: async (params?: {
+    page?: number;
+    page_size?: number;
+    ordering?: string;
+    search?: string;
+    category?: string;
+  }) => {
+    const response = await api.get('/blog-posts/', { params });
+    return response.data;
+  },
+
+  getBySlug: async (slug: string) => {
+    const encoded = encodeURIComponent(slug);
+    const response = await api.get(`/blog-posts/${encoded}/`);
+    return response.data;
+  },
+};
+
 // Categories
 export const categoryApi = {
   // Get all categories
@@ -249,6 +321,21 @@ export const categoryApi = {
     const response = await api.get(`/categories/${id}/`);
     return response.data;
   },
+
+  create: async (data: { name: string; slug?: string }) => {
+    const response = await api.post('/categories/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: { name: string; slug?: string }) => {
+    const response = await api.put(`/categories/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/categories/${id}/`);
+    return response.data;
+  },
 };
 
 // Badges
@@ -256,12 +343,36 @@ export interface Badge {
   id: number;
   name: string;
   display_name: string;
+  is_active?: boolean;
 }
 
 export const badgeApi = {
   // Get all badges
   getAll: async (): Promise<Badge[]> => {
     const response = await api.get('/badges/');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<Badge> => {
+    const response = await api.get(`/badges/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: { name: string; display_name: string; is_active?: boolean }) => {
+    const response = await api.post('/badges/', data);
+    return response.data;
+  },
+
+  update: async (
+    id: number,
+    data: { name: string; display_name: string; is_active?: boolean },
+  ) => {
+    const response = await api.put(`/badges/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/badges/${id}/`);
     return response.data;
   },
 };
@@ -339,6 +450,46 @@ export const contactApi = {
   // Submit contact form
   submit: async (data: ContactFormData): Promise<ContactFormResponse> => {
     const response = await api.post('/contact/', data);
+    return response.data;
+  },
+};
+
+// Admin (session-authenticated) helpers
+export interface AdminMe {
+  username: string;
+  is_staff: boolean;
+  is_superuser: boolean;
+}
+
+export const adminApi = {
+  getCsrf: async (): Promise<{ csrfToken?: string }> => {
+    const response = await api.get('/admin/csrf/');
+    return response.data;
+  },
+
+  me: async (): Promise<AdminMe> => {
+    const response = await api.get('/admin/me/');
+    return response.data;
+  },
+
+  login: async (data: { username: string; password: string }): Promise<{ ok: boolean }> => {
+    const response = await api.post('/admin/login/', data);
+    return response.data;
+  },
+
+  logout: async (): Promise<{ ok: boolean }> => {
+    const response = await api.post('/admin/logout/');
+    return response.data;
+  },
+
+  analyticsSummary: async (): Promise<{
+    total_viewers: number;
+    today_views: number;
+    total_views: number;
+    unique_viewers_today: number;
+    views_last_7_days: number;
+  }> => {
+    const response = await api.get('/admin/analytics/summary/');
     return response.data;
   },
 };

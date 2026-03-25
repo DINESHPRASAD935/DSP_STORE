@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Menu, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ProductCardGlass } from '../components/ProductCardGlass';
 import { AdSlot, hasAdsConfigured } from '../components/AdSlot';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -8,17 +8,19 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
 import { Footer } from '../components/common/Footer';
-import { productApi, Product } from '../services/api';
+import { productApi, Product, blogApi, BlogPost } from '../services/api';
+import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { useCategories } from '../hooks/useCategories';
 import { usePagination } from '../hooks/usePagination';
 import { normalizeArray } from '../utils/arrayUtils';
-import { NAV, SEARCH, MESSAGES, PAGINATION } from '../constants/strings';
+import { NAV, SEARCH, MESSAGES } from '../constants/strings';
 import { Seo } from '../components/Seo';
 import { getSiteUrl } from '../utils/siteUrl';
 import React from 'react';
 
 export function HomePage() {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -26,6 +28,10 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [latestBlogs, setLatestBlogs] = useState<BlogPost[]>([]);
+  const [blogsLoading, setBlogsLoading] = useState(true);
+  const [blogsError, setBlogsError] = useState<string | null>(null);
   
   const { siteSettings, loading: settingsLoading } = useSiteSettings();
   const { categories } = useCategories();
@@ -84,12 +90,51 @@ export function HomePage() {
     fetchProducts();
   }, [searchQuery, selectedCategory, currentPage, pageSize, settingsLoading]);
 
+  // Fetch latest blogs for the home page (adds content for SEO/traffic)
+  useEffect(() => {
+    const fetchLatestBlogs = async () => {
+      setBlogsLoading(true);
+      setBlogsError(null);
+      try {
+        const response = await blogApi.getAll({
+          page: 1,
+          page_size: 4,
+          ordering: '-published_at',
+        });
+
+        const list = normalizeArray<BlogPost>(response).filter((b) => !!b.slug);
+        setLatestBlogs(list.slice(0, 4));
+      } catch (err: any) {
+        setBlogsError(err?.message || 'Failed to load blogs');
+        setLatestBlogs([]);
+      } finally {
+        setBlogsLoading(false);
+      }
+    };
+
+    fetchLatestBlogs();
+  }, []);
+
   const getCategoryName = (category: string | { id: number; name: string; slug: string }): string => {
     if (typeof category === 'string') return category;
     return category.name;
   };
 
   const categoryList = ['All', ...categories.map(c => c.name)];
+
+  // Support deep-linking a category from /product pages: /?category=SomeCategory
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const fromQuery = q.get('category');
+    if (!fromQuery) return;
+
+    // Only set if it exists in the loaded category list.
+    if (categoryList.includes(fromQuery)) {
+      setSelectedCategory(fromQuery);
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, categories]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -141,8 +186,8 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <Seo
-        title={siteSettings.brand_name}
-        description={siteSettings.description}
+        title="Best Viral Product Reviews in India | MrDSPHub"
+        description="Honest product reviews in India: ad vs reality verdicts, trending picks, and smart affiliate deals. Shop faster with MrDSPHub."
         path="/"
         siteName={siteSettings.brand_name}
         jsonLd={[
@@ -190,7 +235,7 @@ export function HomePage() {
                                      <span class="text-white text-lg font-bold">${brandName.charAt(0).toUpperCase()}</span>
                                    </div>
                                    <div>
-                                     <h1 class="text-xl text-white">${brandName}</h1>
+                                     <p class="text-xl text-white">${brandName}</p>
                                      ${tagline ? `<p class="text-xs text-gray-400">${tagline}</p>` : ''}
                                    </div>
                                  `;
@@ -206,7 +251,7 @@ export function HomePage() {
                                </span>
                              </div>
                              <div>
-                               <h1 className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</h1>
+                               <p className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</p>
                                {siteSettings?.tagline && (
                                  <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                                )}
@@ -215,7 +260,7 @@ export function HomePage() {
                          )}
                        </div>
                        <div>
-                         <h1 className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</h1>
+                         <p className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</p>
                          {siteSettings?.tagline && (
                            <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                          )}
@@ -240,10 +285,10 @@ export function HomePage() {
 
             <div className="flex items-center gap-2 flex-shrink-0 justify-end">
               <Link
-                to="/about"
+                to="/blog"
                 className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all"
               >
-                {NAV.ABOUT}
+                {NAV.BLOG}
               </Link>
 
               <button
@@ -278,11 +323,11 @@ export function HomePage() {
           {mobileMenuOpen && (
             <div className="md:hidden py-3 border-t border-gray-800/50">
               <Link
-                to="/about"
+                to="/blog"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center min-h-[48px] w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-xl hover:bg-gray-700/50 transition-all text-center font-medium touch-manipulation"
               >
-                {NAV.ABOUT}
+                {NAV.BLOG}
               </Link>
             </div>
           )}
@@ -341,19 +386,16 @@ export function HomePage() {
 
       {/* Main Content — extra bottom padding on small screens so floating actions do not cover cards */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-28 sm:pb-12">
-        {/* Stats */}
-        <div className="mb-6 sm:mb-8">
-          <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
-            {SEARCH.SHOWING}{' '}
-            <span className="text-cyan-400">
-              {loading ? '...' : products.length > 0 ? ((currentPage - 1) * pageSize + 1) : 0}-{Math.min(currentPage * pageSize, totalCount)}
-            </span>
-            {' '}{SEARCH.OF}{' '}
-            <span className="text-cyan-400">{totalCount}</span> {SEARCH.PRODUCTS}
-          </p>
-        </div>
-
-        {loading && <LoadingSpinner message={MESSAGES.LOADING.PRODUCTS} />}
+        {loading && (
+          <>
+            <LoadingSpinner message={MESSAGES.LOADING.PRODUCTS} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 mt-6">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <ProductCardSkeleton key={idx} />
+              ))}
+            </div>
+          </>
+        )}
 
         {error && !loading && (
           <ErrorMessage
@@ -401,6 +443,53 @@ export function HomePage() {
             onPageChange={goToPage}
           />
         )}
+
+        {/* Latest Blogs */}
+        <section className="mt-12 mb-4">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <h2 className="text-2xl sm:text-3xl text-white font-semibold">Latest Blogs</h2>
+            <Link
+              to="/blog"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-800/50 border border-gray-700/50 text-cyan-300 text-sm hover:bg-gray-800/70 hover:border-cyan-500/40 transition-all"
+            >
+              Explore
+            </Link>
+          </div>
+
+          {blogsLoading ? (
+            <LoadingSpinner message="Loading guides..." size="sm" className="py-10" />
+          ) : blogsError ? (
+            <ErrorMessage title="Blogs" message={blogsError} className="pt-10" />
+          ) : latestBlogs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+              {latestBlogs.map((b) => (
+                <Link key={b.slug} to={`/blog/${b.slug}`} className="block">
+                  <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl overflow-hidden hover:border-cyan-500/40 transition-all h-full">
+                    {b.cover_image ? (
+                      <img
+                        src={b.cover_image}
+                        alt={b.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-36 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-36 bg-gradient-to-r from-cyan-500/20 to-blue-500/20" />
+                    )}
+                    <div className="p-4">
+                      <p className="text-white font-medium line-clamp-2">{b.title}</p>
+                      {b.excerpt ? (
+                        <p className="text-gray-400 text-sm mt-2 line-clamp-2">{b.excerpt}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-center py-10">No blog posts found.</p>
+          )}
+        </section>
       </main>
       
       {/* Footer */}

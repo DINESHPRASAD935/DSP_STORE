@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   LayoutDashboard,
@@ -19,16 +19,48 @@ import {
   ArchiveRestore,
   Star
 } from 'lucide-react';
-import { productApi, categoryApi, badgeApi, siteSettingsApi, Product, Category, Badge, ProductCreateData, SiteSettings } from '../services/api';
+import { productApi, categoryApi, badgeApi, siteSettingsApi, adminApi, Product, Category, Badge, ProductCreateData, SiteSettings } from '../services/api';
 import { NAV, ADMIN, MESSAGES } from '../constants/strings';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { Seo } from '../components/Seo';
 
-type Tab = 'dashboard' | 'add' | 'list' | 'archived' | 'settings';
+type Tab = 'dashboard' | 'add' | 'list' | 'archived' | 'settings' | 'analytics' | 'badges' | 'categories';
 
 export function AdminPage() {
   const { siteSettings } = useSiteSettings();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [authLoading, setAuthLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [analyticsSummary, setAnalyticsSummary] = useState<{
+    total_viewers: number;
+    today_views: number;
+    total_views: number;
+    unique_viewers_today: number;
+    views_last_7_days: number;
+  }>({
+    total_viewers: 0,
+    today_views: 0,
+    total_views: 0,
+    unique_viewers_today: 0,
+    views_last_7_days: 0,
+  });
+
+  // Badge management
+  const [badgeFormData, setBadgeFormData] = useState<{
+    name: string;
+    display_name: string;
+    is_active: boolean;
+  }>({ name: '', display_name: '', is_active: true });
+  const [editingBadge, setEditingBadge] = useState<Badge | null>(null);
+
+  // Category management
+  const [categoryFormData, setCategoryFormData] = useState<{
+    name: string;
+    slug: string;
+  }>({ name: '', slug: '' });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [archivedProducts, setArchivedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,11 +82,28 @@ export function AdminPage() {
     affiliateLink: '',
     affiliateStoreName: '',
     badge_id: '',
+    admin_number: '',
     rating: '4.5'
   });
 
+  // Route guard: only staff/admin users can access this page.
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        await adminApi.me();
+      } catch (err) {
+        navigate('/adminui/login', { replace: true });
+        return;
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
   // Fetch data on mount and when tab changes
   useEffect(() => {
+    if (authLoading) return;
     fetchCategories();
     fetchBadges();
     if (activeTab === 'list' || activeTab === 'dashboard') {
@@ -65,7 +114,28 @@ export function AdminPage() {
     } else if (activeTab === 'settings') {
       fetchSiteSettings();
     }
-  }, [activeTab]);
+  }, [activeTab, authLoading]);
+
+  // Fetch analytics when the tab is selected
+  useEffect(() => {
+    if (authLoading) return;
+    if (activeTab !== 'analytics') return;
+
+    const fetchAnalytics = async () => {
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+      try {
+        const data = await adminApi.analyticsSummary();
+        setAnalyticsSummary(data);
+      } catch (err: any) {
+        setAnalyticsError(err?.message || err?.response?.data?.detail || 'Failed to load analytics');
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [activeTab, authLoading]);
   
   const fetchSiteSettings = async () => {
     setSettingsLoading(true);
@@ -173,6 +243,24 @@ export function AdminPage() {
     });
   };
 
+  const handleBadgeInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      setBadgeFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    } else {
+      setBadgeFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleCategoryInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setCategoryFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -183,9 +271,106 @@ export function AdminPage() {
       affiliateLink: '',
       affiliateStoreName: '',
       badge_id: '',
+      admin_number: '',
       rating: '4.5',
     });
     setEditingProduct(null);
+  };
+
+  const resetBadgeForm = () => {
+    setBadgeFormData({ name: '', display_name: '', is_active: true });
+    setEditingBadge(null);
+  };
+
+  const resetCategoryForm = () => {
+    setCategoryFormData({ name: '', slug: '' });
+    setEditingCategory(null);
+  };
+
+  const handleSubmitBadge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      if (editingBadge) {
+        await badgeApi.update(editingBadge.id, badgeFormData);
+        toast.success('Badge updated successfully!');
+      } else {
+        await badgeApi.create(badgeFormData);
+        toast.success('Badge created successfully!');
+      }
+      resetBadgeForm();
+      fetchBadges();
+      setActiveTab('badges');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to save badge';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = {
+        name: categoryFormData.name,
+        slug: categoryFormData.slug,
+      };
+      if (editingCategory) {
+        await categoryApi.update(editingCategory.id, payload);
+        toast.success('Category updated successfully!');
+      } else {
+        await categoryApi.create(payload);
+        toast.success('Category created successfully!');
+      }
+      resetCategoryForm();
+      fetchCategories();
+      setActiveTab('categories');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to save category';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteBadge = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await badgeApi.delete(id);
+      toast.success('Badge deleted successfully!');
+      if (editingBadge?.id === id) resetBadgeForm();
+      fetchBadges();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete badge';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await categoryApi.delete(id);
+      toast.success('Category deleted successfully!');
+      if (editingCategory?.id === id) resetCategoryForm();
+      fetchCategories();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete category';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -204,6 +389,7 @@ export function AdminPage() {
         affiliateStoreName: formData.affiliateStoreName.trim(),
         badge_id: formData.badge_id === '' ? null : (formData.badge_id ? parseInt(formData.badge_id) : null),
         rating: formData.rating ? parseFloat(formData.rating) : undefined,
+        admin_number: formData.admin_number ? parseInt(formData.admin_number, 10) : null,
       };
 
       if (editingProduct) {
@@ -253,6 +439,7 @@ export function AdminPage() {
         affiliateStoreName: fullProduct.affiliateStoreName?.trim() ?? '',
         badge_id: badgeId?.toString() || '',
         rating: fullProduct.rating?.toString() || '4.5',
+        admin_number: fullProduct.admin_number?.toString() || '',
     });
       setEditingProduct(fullProduct);
     setActiveTab('add');
@@ -332,12 +519,23 @@ export function AdminPage() {
       }, 0) / activeProducts.length).toFixed(1)
     : '0.0';
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Checking admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <Seo
         title={`Admin | ${siteSettings.brand_name}`}
         description="Store administration — not indexed for search."
-        path="/adminmrdsp"
+        path="/adminui"
         siteName={siteSettings.brand_name}
         noindex
       />
@@ -468,11 +666,42 @@ export function AdminPage() {
               Site Settings
             </button>
 
+            <button
+              onClick={() => { setActiveTab('categories'); resetCategoryForm(); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'categories'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                  : 'text-gray-300 hover:bg-gray-800/50'
+              }`}
+            >
+              <Tag className="w-5 h-5" />
+              {ADMIN.TABS.CATEGORIES}
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('badges'); resetBadgeForm(); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'badges'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                  : 'text-gray-300 hover:bg-gray-800/50'
+              }`}
+            >
+              <Star className="w-5 h-5" />
+              {ADMIN.TABS.BADGES}
+            </button>
+
             <div className="pt-4 border-t border-gray-800/50">
-              <div className="px-4 py-3 text-gray-400 text-sm flex items-center gap-2">
+              <button
+                onClick={() => { setActiveTab('analytics'); resetForm(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  activeTab === 'analytics'
+                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                    : 'text-gray-300 hover:bg-gray-800/50'
+                }`}
+              >
                 <BarChart3 className="w-5 h-5" />
                 {ADMIN.TABS.ANALYTICS}
-              </div>
+              </button>
             </div>
           </nav>
         </aside>
@@ -515,6 +744,15 @@ export function AdminPage() {
             >
               <Archive className="w-5 h-5" />
               <span className="text-xs">{ADMIN.MOBILE_TABS.ARCHIVED}</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('analytics'); resetForm(); }}
+              className={`flex-1 py-4 flex flex-col items-center gap-1 ${
+                activeTab === 'analytics' ? 'text-cyan-400' : 'text-gray-400'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-xs">{ADMIN.MOBILE_TABS.ANALYTICS}</span>
             </button>
           </div>
         </div>
@@ -810,6 +1048,26 @@ export function AdminPage() {
                     />
                   </div>
 
+                  {/* Serial Number (used by blog recommended-product selection) */}
+                  <div>
+                    <label className="block text-gray-300 mb-2">
+                      Serial Number (Blog Recommended Products)
+                    </label>
+                    <input
+                      type="number"
+                      name="admin_number"
+                      value={formData.admin_number}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      placeholder="e.g. 1"
+                    />
+                    <p className="text-gray-500 text-xs mt-1.5">
+                      Set a serial number for this product. In Django Admin for a blog post, reference these serial numbers (in order) in “Recommended product serial numbers”.
+                    </p>
+                  </div>
+
                   {/* Social Media Links Section */}
                   <div className="border-t border-gray-700/50 pt-6 mt-6">
                     <h3 className="text-lg text-white mb-4">Creator Review Content (Optional)</h3>
@@ -1068,6 +1326,297 @@ export function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div>
+              <h2 className="text-3xl text-white mb-8">{ADMIN.TABS.ANALYTICS}</h2>
+
+              {analyticsLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-400">Loading analytics...</p>
+                </div>
+              ) : analyticsError ? (
+                <div className="text-center py-12">
+                  <p className="text-red-400">{analyticsError}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 backdrop-blur-lg border border-cyan-500/30 rounded-2xl p-6">
+                    <h3 className="text-gray-300">{'Today Views'}</h3>
+                    <p className="text-4xl text-white mt-3">{analyticsSummary.today_views}</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-lg border border-purple-500/30 rounded-2xl p-6">
+                    <h3 className="text-gray-300">{'Unique Viewers (Today)'}</h3>
+                    <p className="text-4xl text-white mt-3">{analyticsSummary.unique_viewers_today}</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 backdrop-blur-lg border border-green-500/30 rounded-2xl p-6">
+                    <h3 className="text-gray-300">{'Total Views'}</h3>
+                    <p className="text-4xl text-white mt-3">{analyticsSummary.total_views}</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-yellow-600/15 to-orange-600/20 backdrop-blur-lg border border-yellow-500/30 rounded-2xl p-6">
+                    <h3 className="text-gray-300">{'Views (Last 7 Days)'}</h3>
+                    <p className="text-4xl text-white mt-3">{analyticsSummary.views_last_7_days}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'categories' && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl text-white">{ADMIN.TABS.CATEGORIES}</h2>
+                <button
+                  onClick={() => resetCategoryForm()}
+                  className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  {editingCategory ? 'Cancel Edit' : 'Clear'}
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitCategory} className="max-w-2xl">
+                <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6 space-y-6">
+                  <div>
+                    <label className="block text-gray-300 mb-2">Category Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={categoryFormData.name}
+                      onChange={handleCategoryInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 mb-2">Slug (optional)</label>
+                    <input
+                      type="text"
+                      name="slug"
+                      value={categoryFormData.slug}
+                      onChange={handleCategoryInputChange}
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      placeholder="auto-generated if empty"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-lg rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : editingCategory ? (
+                      'Update Category'
+                    ) : (
+                      'Create Category'
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-10">
+                <h3 className="text-xl text-white mb-4">Existing Categories</h3>
+                <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-gray-300">Name</th>
+                          <th className="px-6 py-4 text-left text-gray-300">Slug</th>
+                          <th className="px-6 py-4 text-left text-gray-300">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800/50">
+                        {categories.map((c) => (
+                          <tr key={c.id} className="hover:bg-gray-800/30 transition-colors">
+                            <td className="px-6 py-4 text-white">{c.name}</td>
+                            <td className="px-6 py-4 text-gray-400">{c.slug}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingCategory(c);
+                                    setCategoryFormData({ name: c.name, slug: c.slug || '' });
+                                  }}
+                                  className="p-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCategory(c.id)}
+                                  className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {categories.length === 0 && (
+                          <tr>
+                            <td colSpan={3} className="px-6 py-12 text-center text-gray-400">
+                              No categories found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'badges' && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl text-white">{ADMIN.TABS.BADGES}</h2>
+                <button
+                  onClick={() => resetBadgeForm()}
+                  className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  {editingBadge ? 'Cancel Edit' : 'Clear'}
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitBadge} className="max-w-2xl">
+                <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6 space-y-6">
+                  <div>
+                    <label className="block text-gray-300 mb-2">Badge Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={badgeFormData.name}
+                      onChange={handleBadgeInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 mb-2">Display Name</label>
+                    <input
+                      type="text"
+                      name="display_name"
+                      value={badgeFormData.display_name}
+                      onChange={handleBadgeInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="is_active"
+                      checked={badgeFormData.is_active}
+                      onChange={handleBadgeInputChange}
+                      className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-cyan-600 focus:ring-cyan-500"
+                    />
+                    <span className="text-gray-300 text-sm">Active</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-lg rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : editingBadge ? (
+                      'Update Badge'
+                    ) : (
+                      'Create Badge'
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-10">
+                <h3 className="text-xl text-white mb-4">Existing Badges</h3>
+                <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-gray-300">Name</th>
+                          <th className="px-6 py-4 text-left text-gray-300">Display</th>
+                          <th className="px-6 py-4 text-left text-gray-300">Active</th>
+                          <th className="px-6 py-4 text-left text-gray-300">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800/50">
+                        {badges.map((b) => (
+                          <tr key={b.id} className="hover:bg-gray-800/30 transition-colors">
+                            <td className="px-6 py-4 text-white">{b.name}</td>
+                            <td className="px-6 py-4 text-gray-300">{b.display_name}</td>
+                            <td className="px-6 py-4 text-gray-400">{b.is_active ? 'Yes' : 'No'}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingBadge(b);
+                                    setBadgeFormData({
+                                      name: b.name,
+                                      display_name: b.display_name,
+                                      is_active: b.is_active ?? true,
+                                    });
+                                  }}
+                                  className="p-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteBadge(b.id)}
+                                  className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {badges.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                              No badges found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

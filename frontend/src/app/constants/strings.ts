@@ -19,6 +19,7 @@ export const BRAND = {
 export const NAV = {
   HOME: 'Home',
   ABOUT: 'About',
+  BLOG: 'Blog',
   CONTACT: 'Contact',
   BACK_TO_STORE: 'Back to Store',
   BACK_TO_PRODUCTS: 'Back to Products',
@@ -78,13 +79,16 @@ export const ADMIN = {
     ADD_NEW_PRODUCT: 'Add New Product',
     PRODUCT_LIST: 'Product List',
     ARCHIVED: 'Archived',
-    ANALYTICS: 'Analytics (Soon)',
+    ANALYTICS: 'Analytics',
+    BADGES: 'Badges',
+    CATEGORIES: 'Categories',
   },
   MOBILE_TABS: {
     DASHBOARD: 'Dashboard',
     ADD: 'Add',
     LIST: 'List',
     ARCHIVED: 'Archived',
+    ANALYTICS: 'Analytics',
   },
   STATS: {
     TOTAL_PRODUCTS: 'Total Products',

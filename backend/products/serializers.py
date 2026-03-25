@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink
+from .models import Category, Product, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink, BlogPost
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -30,10 +30,28 @@ class ProductListSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
     badge = serializers.SerializerMethodField()
     affiliateLink = serializers.URLField(source='affiliate_link', read_only=True)
+    affiliateStoreName = serializers.CharField(
+        source='affiliate_store_name',
+        allow_blank=True,
+        required=False,
+        max_length=80,
+        read_only=True,
+    )
     
     class Meta:
         model = Product
-        fields = ['id', 'name', 'tagline', 'image', 'category', 'affiliateLink', 'badge', 'rating', 'created_at']
+        fields = [
+            'id',
+            'name',
+            'tagline',
+            'image',
+            'category',
+            'affiliateLink',
+            'affiliateStoreName',
+            'badge',
+            'rating',
+            'created_at',
+        ]
     
     def get_category(self, obj):
         if isinstance(obj.category, Category):
@@ -65,7 +83,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'tagline', 'description', 'image',
             'category', 'category_id', 'affiliateLink', 'affiliateStoreName', 'badge', 'badge_id',
-            'rating', 'social_media_links',
+            'rating', 'admin_number', 'social_media_links',
             'is_active', 'is_archived', 'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
@@ -181,3 +199,75 @@ class ContactFormSerializer(serializers.Serializer):
         if len(value.strip()) < 10:
             raise serializers.ValidationError("Message must be at least 10 characters long")
         return value.strip()
+
+
+class BlogPostListSerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = ['id', 'title', 'slug', 'excerpt', 'cover_image', 'author_name', 'published_at', 'updated_at', 'category', 'is_active']
+
+    def get_category(self, obj):
+        if obj.category:
+            return obj.category.name
+        return None
+
+
+class BlogPostSerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField()
+    recommended_products = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = [
+            'id',
+            'title',
+            'slug',
+            'excerpt',
+            'content',
+            'cover_image',
+            'author_name',
+            'category',
+            'recommended_product_numbers',
+            'recommended_products',
+            'published_at',
+            'updated_at',
+        ]
+
+    def get_category(self, obj):
+        if obj.category:
+            return {'id': obj.category.id, 'name': obj.category.name, 'slug': obj.category.slug}
+        return None
+
+    def get_recommended_products(self, obj):
+        numbers = obj.recommended_product_numbers or []
+        if not isinstance(numbers, list):
+            return []
+
+        cleaned_numbers: list[int] = []
+        for n in numbers:
+            try:
+                cleaned_numbers.append(int(n))
+            except (TypeError, ValueError):
+                continue
+
+        if not cleaned_numbers:
+            return []
+
+        # Keep the same ordering as the admin-configured list.
+        products_qs = Product.objects.filter(
+            tenant=obj.tenant,
+            is_active=True,
+            is_archived=False,
+            admin_number__in=cleaned_numbers,
+        )
+        products_by_number = {
+            p.admin_number: p
+            for p in products_qs
+            if p.admin_number is not None
+        }
+
+        ordered_products = [products_by_number.get(n) for n in cleaned_numbers]
+        ordered_products = [p for p in ordered_products if p is not None]
+        return ProductSerializer(ordered_products, many=True, context=self.context).data

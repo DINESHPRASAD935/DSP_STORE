@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, Send, ArrowLeft, Loader2 } from 'lucide-react';
 import { AdSlot, hasAdsConfigured } from '../components/AdSlot';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Footer } from '../components/common/Footer';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { createInputHandler } from '../utils/formUtils';
@@ -116,7 +115,7 @@ export function AboutPage() {
                             <span class="text-white text-lg font-bold">${brandName.charAt(0).toUpperCase()}</span>
                           </div>
                           <div>
-                            <h1 class="text-xl text-white">${brandName}</h1>
+                            <p class="text-xl text-white">${brandName}</p>
                             ${tagline ? `<p class="text-xs text-gray-400">${tagline}</p>` : ''}
                           </div>
                         `;
@@ -132,7 +131,7 @@ export function AboutPage() {
                       </span>
                     </div>
                     <div>
-                      <h1 className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</h1>
+                      <p className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</p>
                       {siteSettings?.tagline && (
                         <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                       )}
@@ -141,7 +140,7 @@ export function AboutPage() {
                 )}
               </div>
               <div>
-                <h1 className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</h1>
+                <p className="text-xl text-white">{siteSettings?.brand_name || 'Brand'}</p>
                 {siteSettings?.tagline && (
                   <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                 )}

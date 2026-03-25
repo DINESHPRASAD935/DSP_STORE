@@ -2,6 +2,7 @@ import React from 'react';
 import { ExternalLink, ShoppingCart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '../services/api';
+import { getWebpCandidate } from '../utils/image';
 
 interface ProductCardGlassProps {
   product: Product;
@@ -16,6 +17,11 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
     if (!product.affiliateLink) return;
     window.open(product.affiliateLink, '_blank', 'noopener,noreferrer');
   };
+
+  const webpImage = getWebpCandidate(product.image);
+  const storeName = product.affiliateStoreName?.trim() || 'Amazon';
+  const srcToUse = webpImage || product.image;
+  const originalSrc = product.image;
 
   return (
     <Link
@@ -33,25 +39,46 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
         {/* Image */}
         <div className="aspect-square overflow-hidden bg-gray-900/50">
           <img
-            src={product.image}
+            src={srcToUse}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             onError={(e) => {
-              // Fallback to placeholder if image fails to load
               const target = e.target as HTMLImageElement;
-              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+              const triedWebpFallback = target.dataset.webpFallbackTried === '1';
+              if (!triedWebpFallback) {
+                target.dataset.webpFallbackTried = '1';
+                target.src = originalSrc;
+                return;
+              }
+
+              // Final fallback (prevents blank cards even if both webp and original fail).
+              target.src =
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
             }}
           />
         </div>
         
         {/* Content */}
         <div className="p-4 sm:p-5">
+          {product.is_trending && (
+            <div className="mb-2 inline-flex items-center px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs">
+              🔥 Trending
+            </div>
+          )}
           <h3 className="text-base sm:text-lg text-white mb-1 line-clamp-2 sm:line-clamp-1 group-hover:text-cyan-400 transition-colors">
             {product.name}
           </h3>
           <p className="text-gray-400 text-sm mb-3 line-clamp-2">
             {product.tagline}
           </p>
+
+          {product.price !== undefined && product.price !== null && (
+            <p className="text-cyan-300 text-sm mb-3">
+              {product.currency || 'INR'} {product.price}
+            </p>
+          )}
           
           {/* Rating */}
           {product.rating && (
@@ -74,11 +101,13 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
                   type="button"
                   onClick={handleBuyNowClick}
                   className="min-h-[44px] px-4 py-2.5 sm:min-h-0 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm sm:text-xs font-medium hover:from-cyan-500 hover:to-blue-500 transition-all shadow shadow-cyan-500/20 flex items-center gap-1.5 touch-manipulation shrink-0"
-                  aria-label="Buy now on partner site"
-                  title="Buy now on partner site"
+                  aria-label={`Buy on ${storeName}`}
+                  title={`Buy on ${storeName}`}
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                  Buy Now
+                  <span className="text-sm sm:text-xs font-semibold inline-flex items-center gap-1">
+                    Buy on {storeName}
+                  </span>
                 </button>
               )}
             </div>

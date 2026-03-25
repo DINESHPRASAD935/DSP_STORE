@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "seo:generate": "node scripts/generate-sitemap.mjs",
+    "build": "npm run seo:generate && vite build",
     "dev": "vite"
   },
   "dependencies": {
@@ -69,11 +70,13 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@types/node": "^25.5.0",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "^6.4.1"
+    "vite": "^6.4.1",
+    "vite-plugin-compression": "0.5.1"
   },
   "peerDependencies": {
     "react": "^18.3.1",
