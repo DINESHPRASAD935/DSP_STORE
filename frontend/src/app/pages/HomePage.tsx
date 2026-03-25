@@ -14,6 +14,8 @@ import { useCategories } from '../hooks/useCategories';
 import { usePagination } from '../hooks/usePagination';
 import { normalizeArray } from '../utils/arrayUtils';
 import { NAV, SEARCH, MESSAGES, PAGINATION } from '../constants/strings';
+import { Seo } from '../components/Seo';
+import { getSiteUrl } from '../utils/siteUrl';
 import React from 'react';
 
 export function HomePage() {
@@ -134,14 +136,40 @@ export function HomePage() {
     }
   }, [categories]);
 
+  const siteUrl = getSiteUrl();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={siteSettings.brand_name}
+        description={siteSettings.description}
+        path="/"
+        siteName={siteSettings.brand_name}
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: siteSettings.brand_name,
+            url: siteUrl,
+            description: siteSettings.description,
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: siteSettings.brand_name,
+            url: siteUrl,
+            description: siteSettings.description,
+          },
+        ]}
+      />
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
+      <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 gap-4">
+          <div className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:h-20 md:py-0">
+            {/* Row 1 — mobile: logo + menu · desktop: logo only (search + About are siblings) */}
+            <div className="flex items-center justify-between gap-3 md:contents">
                      {/* Logo */}
-                     <Link to="/" className="flex items-center gap-3 flex-shrink-0 hover:opacity-90 transition-opacity">
+                     <Link to="/" className="flex items-center gap-3 flex-shrink-0 min-w-0 max-w-[min(100%,calc(100%-3.5rem))] hover:opacity-90 transition-opacity md:max-w-none">
                        <div className="h-14 w-auto flex items-center justify-center overflow-hidden">
                          {siteSettings?.logo_url || (import.meta as { env?: { VITE_LOGO_URL?: string } }).env?.VITE_LOGO_URL ? (
                            <img 
@@ -194,120 +222,128 @@ export function HomePage() {
                        </div>
                      </Link>
 
-            {/* Search Bar in Header */}
-            <div className="flex-1 max-w-md mx-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            {/* Search — desktop */}
+            <div className="hidden md:flex flex-1 min-w-0 max-w-xl mx-4">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
                 <input
-                  type="text"
+                  type="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
                   placeholder={SEARCH.PLACEHOLDER}
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
-            {/* About Link */}
+            <div className="flex items-center gap-2 flex-shrink-0 justify-end">
               <Link
-              to="/about"
-              className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all flex-shrink-0"
+                to="/about"
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all"
               >
-              {NAV.ABOUT}
+                {NAV.ABOUT}
               </Link>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-300 hover:text-white flex-shrink-0"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-gray-300 hover:text-white hover:bg-gray-800/50"
+                aria-expanded={mobileMenuOpen}
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+            </div>
+
+          {/* Mobile: full-width search (easier to tap and read) */}
+          <div className="md:hidden pb-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+              <input
+                type="search"
+                enterKeyHint="search"
+                autoComplete="off"
+                placeholder={SEARCH.PLACEHOLDER}
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full min-h-[48px] pl-11 pr-4 py-3 text-base bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all touch-manipulation"
+              />
+            </div>
           </div>
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu — About only (search is always visible above) */}
           {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-800/50">
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder={SEARCH.PLACEHOLDER}
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all text-sm"
-                  />
-                </div>
-              </div>
-              {/* About Link in Mobile Menu */}
-              <div className="pt-2">
+            <div className="md:hidden py-3 border-t border-gray-800/50">
               <Link
-                  to="/about"
-                  className="block w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-all text-center"
+                to="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center min-h-[48px] w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-xl hover:bg-gray-700/50 transition-all text-center font-medium touch-manipulation"
               >
-                  {NAV.ABOUT}
+                {NAV.ABOUT}
               </Link>
-              </div>
             </div>
           )}
         </div>
-      </header>
+        </div>
 
-      {/* Categories - Sticky */}
-      <div className="sticky top-20 z-40 bg-gray-900/30 backdrop-blur-lg border-b border-gray-800/50 py-2">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center gap-2">
-            {/* Left Arrow */}
-            {canScrollLeft && (
-              <button
-                onClick={() => scrollCategories('left')}
-                className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-md text-gray-300 hover:text-cyan-400 transition-all z-10"
-                aria-label={SEARCH.SCROLL_CATEGORIES_LEFT}
+        {/* Categories — inside sticky header so one bar stays aligned on all screen sizes */}
+        <div className="border-t border-gray-800/50 bg-gray-900/50 py-2.5 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative flex items-center gap-2">
+              {canScrollLeft && (
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('left')}
+                  className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 hover:text-cyan-400 transition-all z-10 touch-manipulation min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 md:w-8 md:h-8 md:rounded-md"
+                  aria-label={SEARCH.SCROLL_CATEGORIES_LEFT}
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+              )}
+
+              <div
+                ref={categoriesScrollRef}
+                className="flex gap-2 overflow-x-auto pb-0.5 flex-1 scrollbar-hide snap-x snap-mandatory scroll-pl-1"
               >
-                <ChevronsLeft className="w-4 h-4" />
-              </button>
-            )}
-            
-            {/* Categories List */}
-            <div 
-              ref={categoriesScrollRef}
-              className="flex gap-1.5 overflow-x-auto pb-1 flex-1 scrollbar-hide"
-            >
-            {categoryList.map(category => (
-              <button
-                key={category}
-                onClick={() => handleCategoryChange(category)}
-                  className={`px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition-all flex-shrink-0 ${
-                  selectedCategory === category
-                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+                {categoryList.map((category) => (
+                  <button
+                    type="button"
+                    key={category}
+                    onClick={() => handleCategoryChange(category)}
+                    className={`px-4 py-2.5 min-h-[44px] md:min-h-0 md:px-3 md:py-1.5 text-sm rounded-xl md:rounded-md whitespace-nowrap transition-all flex-shrink-0 snap-start touch-manipulation ${
+                      selectedCategory === category
+                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+                        : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+
+              {canScrollRight && (
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('right')}
+                  className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 hover:text-cyan-400 transition-all z-10 touch-manipulation min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 md:w-8 md:h-8 md:rounded-md"
+                  aria-label={SEARCH.SCROLL_CATEGORIES_RIGHT}
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
-
-            {/* Right Arrow */}
-            {canScrollRight && (
-              <button
-                onClick={() => scrollCategories('right')}
-                className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-md text-gray-300 hover:text-cyan-400 transition-all z-10"
-                aria-label={SEARCH.SCROLL_CATEGORIES_RIGHT}
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Main Content — extra bottom padding on small screens so floating actions do not cover cards */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-28 sm:pb-12">
         {/* Stats */}
-        <div className="mb-8">
-          <p className="text-gray-400">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
             {SEARCH.SHOWING}{' '}
             <span className="text-cyan-400">
               {loading ? '...' : products.length > 0 ? ((currentPage - 1) * pageSize + 1) : 0}-{Math.min(currentPage * pageSize, totalCount)}
@@ -329,7 +365,7 @@ export function HomePage() {
         {/* Products Grid with Ad Slots */}
         {!loading && !error && products.length > 0 && (
           <div className="mb-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
               {products.map((product, index) => (
                 <React.Fragment key={product.id}>
               <ProductCardGlass 

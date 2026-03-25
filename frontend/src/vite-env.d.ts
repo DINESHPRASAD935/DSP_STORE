@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_ANALYTICS?: string;
   readonly VITE_ENABLE_CHATBOT?: string;
   readonly VITE_DEBUG?: string;
+  /** Optional Telegram channel/group URL when not configured as Social Media in admin */
+  readonly VITE_TELEGRAM_URL?: string;
   // Note: VITE_CONTACT_EMAIL and VITE_CONTACT_PHONE are now managed via Django Admin Panel
 }
 

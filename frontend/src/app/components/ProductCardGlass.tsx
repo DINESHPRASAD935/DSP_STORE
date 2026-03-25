@@ -18,8 +18,11 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
   };
 
   return (
-    <Link to={`/product/${product.id}`} className="group block">
-      <div className="relative bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-lg border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 hover:border-cyan-500/50 hover:shadow-2xl hover:shadow-cyan-500/20">
+    <Link
+      to={`/product/${product.id}`}
+      className="group block touch-manipulation rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500/80"
+    >
+      <div className="relative bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-lg border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:border-cyan-500/50 hover:shadow-2xl hover:shadow-cyan-500/20 md:group-hover:scale-[1.02] active:scale-[0.99]">
         {/* Badge */}
         {product.badge && (
           <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs rounded-full shadow-lg">
@@ -42,8 +45,8 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
         </div>
         
         {/* Content */}
-        <div className="p-5">
-          <h3 className="text-lg text-white mb-1 line-clamp-1 group-hover:text-cyan-400 transition-colors">
+        <div className="p-4 sm:p-5">
+          <h3 className="text-base sm:text-lg text-white mb-1 line-clamp-2 sm:line-clamp-1 group-hover:text-cyan-400 transition-colors">
             {product.name}
           </h3>
           <p className="text-gray-400 text-sm mb-3 line-clamp-2">
@@ -58,11 +61,11 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
             </div>
           )}
           
-          {/* CTA Row */}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-cyan-400 text-sm flex items-center gap-1">
+          {/* CTA Row — min 44px tap targets on mobile */}
+          <div className="flex items-stretch sm:items-center justify-between gap-3">
+            <span className="text-cyan-400 text-sm inline-flex items-center gap-1.5 min-h-[44px] min-w-[44px] -mx-2 px-2 rounded-lg sm:min-h-0 sm:min-w-0 sm:mx-0 sm:px-0">
               View More
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4 shrink-0" aria-hidden />
             </span>
 
             <div className="flex items-center gap-2">
@@ -70,11 +73,11 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
                 <button
                   type="button"
                   onClick={handleBuyNowClick}
-                  className="px-3 py-1.5 lg:px-2 lg:py-1 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs lg:text-[11px] hover:from-cyan-500 hover:to-blue-500 transition-all shadow shadow-cyan-500/20 flex items-center gap-1"
+                  className="min-h-[44px] px-4 py-2.5 sm:min-h-0 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm sm:text-xs font-medium hover:from-cyan-500 hover:to-blue-500 transition-all shadow shadow-cyan-500/20 flex items-center gap-1.5 touch-manipulation shrink-0"
                   aria-label="Buy now on partner site"
                   title="Buy now on partner site"
                 >
-                  <ShoppingCart className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
+                  <ShoppingCart className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   Buy Now
                 </button>
               )}

@@ -139,6 +139,12 @@ class Product(models.Model):
     image = models.URLField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
     affiliate_link = models.URLField()
+    affiliate_store_name = models.CharField(
+        max_length=80,
+        blank=True,
+        default='',
+        help_text="Partner store name shown on the product page (e.g. Amazon, Flipkart, Meesho).",
+    )
     badge = models.ForeignKey(Badge, on_delete=models.SET_NULL, blank=True, null=True, related_name='products')
     rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     is_active = models.BooleanField(default=True)

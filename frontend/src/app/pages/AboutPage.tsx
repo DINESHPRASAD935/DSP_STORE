@@ -8,6 +8,7 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 import { createInputHandler } from '../utils/formUtils';
 import { contactApi } from '../services/api';
 import { NAV, ABOUT, MESSAGES } from '../constants/strings';
+import { Seo } from '../components/Seo';
 import { toast } from 'sonner';
 
 export function AboutPage() {
@@ -84,6 +85,12 @@ export function AboutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Seo
+        title={`${ABOUT.TITLE} | ${siteSettings.brand_name}`}
+        description={ABOUT.CONTENT.WELCOME}
+        path="/about"
+        siteName={siteSettings.brand_name}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -194,45 +201,50 @@ export function AboutPage() {
 
         {/* Contact Section */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold text-white mb-6">{ABOUT.SECTIONS.CONTACT_ME}</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">{ABOUT.SECTIONS.CONTACT_ME}</h2>
+          <p className="text-gray-400 leading-relaxed mb-6 max-w-2xl">{ABOUT.CONTENT.CONTACT_INTRO}</p>
           <div className={`grid grid-cols-1 ${showContactForm ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8`}>
             {/* Contact Information */}
             <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8">
               <h3 className="text-xl text-white mb-6">{ABOUT.SECTIONS.GET_IN_TOUCH}</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-cyan-600/20 rounded-lg flex items-center justify-center">
-                    <Mail className="w-6 h-6 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">{ABOUT.CONTACT.EMAIL}</p>
-                    {siteSettings?.contact_email && (
-                      <a 
-                        href={`mailto:${siteSettings.contact_email}`}
-                        className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        {siteSettings.contact_email}
-                      </a>
-                    )}
-                  </div>
+              {siteSettings?.contact_email || siteSettings?.contact_phone ? (
+                <div className="space-y-4">
+                  {siteSettings?.contact_email && (
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-cyan-600/20 rounded-lg flex items-center justify-center shrink-0">
+                        <Mail className="w-6 h-6 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">{ABOUT.CONTACT.EMAIL}</p>
+                        <a
+                          href={`mailto:${siteSettings.contact_email}`}
+                          className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          {siteSettings.contact_email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {siteSettings?.contact_phone && (
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-cyan-600/20 rounded-lg flex items-center justify-center shrink-0">
+                        <Phone className="w-6 h-6 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">{ABOUT.CONTACT.PHONE}</p>
+                        <a
+                          href={`tel:${siteSettings.contact_phone.replace(/\s/g, '')}`}
+                          className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          {siteSettings.contact_phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-cyan-600/20 rounded-lg flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">{ABOUT.CONTACT.PHONE}</p>
-                    {siteSettings?.contact_phone && (
-                      <a 
-                        href={`tel:${siteSettings.contact_phone.replace(/\s/g, '')}`}
-                        className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        {siteSettings.contact_phone}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <p className="text-gray-500 text-sm">{ABOUT.CONTENT.CONTACT_UNAVAILABLE}</p>
+              )}
 
               <div className="mt-8 pt-8 border-t border-gray-800/50">
                 <h4 className="text-white mb-4">{ABOUT.SECTIONS.BUSINESS_INQUIRIES}</h4>

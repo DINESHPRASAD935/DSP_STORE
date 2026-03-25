@@ -1,4 +1,4 @@
-# MrDSP Hub
+# Mr DSP Hub
 
 A premium dark-themed affiliate product listing web application designed for content creators who review products and redirect users to curated affiliate links.
 
