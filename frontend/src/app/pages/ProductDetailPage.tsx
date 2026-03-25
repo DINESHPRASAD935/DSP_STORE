@@ -9,6 +9,8 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 import { Seo } from '../components/Seo';
 import { absoluteUrl, getSiteUrl } from '../utils/siteUrl';
 import { plainTextExcerpt } from '../utils/seoText';
+import { MobileStickyBar } from '../components/MobileStickyBar';
+import { getWebpCandidate } from '../utils/image';
 
 export function ProductDetailPage() {
   const { id } = useParams();
@@ -17,6 +19,7 @@ export function ProductDetailPage() {
   const { siteSettings } = useSiteSettings();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +32,17 @@ export function ProductDetailPage() {
       try {
         const productData = await productApi.getById(Number(id));
         setProduct(productData);
+
+        // Trending Now: simple rating-based feed (best-effort).
+        try {
+          const trending = await productApi.getAll({ ordering: '-rating' });
+          const list = Array.isArray(trending) ? trending : trending.results || [];
+          setTrendingProducts(
+            (list as Product[]).filter((p) => p.id !== Number(id)).slice(0, 4),
+          );
+        } catch {
+          setTrendingProducts([]);
+        }
 
         // Fetch related products (wrap in try-catch to not fail if this fails)
         try {
@@ -128,13 +142,17 @@ export function ProductDetailPage() {
   };
 
   const categoryName = getCategoryName(product.category);
+  const storeName = product.affiliateStoreName?.trim() || 'Amazon';
 
   const metaDesc =
     plainTextExcerpt(product.description) ||
     product.tagline ||
     siteSettings.description;
   const siteUrl = getSiteUrl();
-  const productJsonLd = {
+  const productUrl = `${siteUrl}${location.pathname}`;
+  const productWebpImage = getWebpCandidate(product.image);
+
+  const productJsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
@@ -144,18 +162,51 @@ export function ProductDetailPage() {
       '@type': 'Brand',
       name: siteSettings.brand_name,
     },
+    aggregateRating:
+      typeof product.rating === 'number'
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: String(product.rating),
+            bestRating: '5',
+            worstRating: '1',
+          }
+        : undefined,
+    offers:
+      product.price !== undefined
+        ? {
+            '@type': 'Offer',
+            priceCurrency: product.currency || 'INR',
+            price: String(product.price),
+            url: productUrl,
+            availability: 'https://schema.org/InStock',
+          }
+        : undefined,
+  };
+
+  const reviewJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Review',
+    itemReviewed: { '@type': 'Product', name: product.name },
+    author: { '@type': 'Organization', name: siteSettings.brand_name },
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: String(product.rating ?? 4),
+      bestRating: '5',
+      worstRating: '1',
+    },
+    reviewBody: plainTextExcerpt(product.description, 400),
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <Seo
-        title={`${product.name} | ${siteSettings.brand_name}`}
+        title={`${product.name} Review | MrDSPHub`}
         description={metaDesc}
         path={location.pathname}
         image={product.image}
         ogType="product"
         siteName={siteSettings.brand_name}
-        jsonLd={productJsonLd}
+        jsonLd={[productJsonLd, reviewJsonLd]}
       />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
@@ -194,7 +245,7 @@ export function ProductDetailPage() {
                               <span class="text-white text-lg font-bold">${brandName.charAt(0).toUpperCase()}</span>
                             </div>
                             <div>
-                              <h1 class="text-xl text-white font-semibold">${brandName}</h1>
+                              <p class="text-xl text-white font-semibold">${brandName}</p>
                               ${tagline ? `<p class="text-xs text-gray-400">${tagline}</p>` : ''}
                             </div>
                           `;
@@ -210,7 +261,7 @@ export function ProductDetailPage() {
                         </span>
                       </div>
                       <div>
-                        <h1 className="text-xl text-white font-semibold">{siteSettings?.brand_name || 'Brand'}</h1>
+                        <p className="text-xl text-white font-semibold">{siteSettings?.brand_name || 'Brand'}</p>
                         {siteSettings?.tagline && (
                           <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                         )}
@@ -219,7 +270,7 @@ export function ProductDetailPage() {
                   )}
                 </div>
                 <div>
-                  <h1 className="text-xl text-white font-semibold">{siteSettings?.brand_name || 'Brand'}</h1>
+                  <p className="text-xl text-white font-semibold">{siteSettings?.brand_name || 'Brand'}</p>
                   {siteSettings?.tagline && (
                     <p className="text-xs text-gray-400">{siteSettings.tagline}</p>
                   )}
@@ -231,7 +282,7 @@ export function ProductDetailPage() {
       </header>
 
       {/* Product Detail */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-28 sm:pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Image Section */}
           <div className="relative">
@@ -242,13 +293,24 @@ export function ProductDetailPage() {
             )}
             <div className="rounded-2xl overflow-hidden bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 w-full max-w-[360px] sm:max-w-[420px] lg:max-w-[460px] h-[360px] sm:h-[420px] lg:h-[460px] mx-auto lg:mx-0">
               <img
-                src={product.image}
+                src={productWebpImage || product.image}
                 alt={product.name}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  // Fallback to placeholder if image fails to load
                   const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+                  const triedWebpFallback = target.dataset.webpFallbackTried === '1';
+                  if (!triedWebpFallback) {
+                    target.dataset.webpFallbackTried = '1';
+                    target.src = product.image;
+                    return;
+                  }
+
+                  // Final placeholder to avoid blank area.
+                  target.src =
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
                 }}
               />
             </div>
@@ -257,9 +319,18 @@ export function ProductDetailPage() {
           {/* Info Section */}
           <div>
             {/* Category Badge */}
-            <div className="inline-block px-4 py-1 bg-gray-800/50 border border-gray-700/50 text-cyan-400 text-sm rounded-full mb-4">
+            <Link
+              to={`/?category=${encodeURIComponent(categoryName)}`}
+              className="inline-block px-4 py-1 bg-gray-800/50 border border-gray-700/50 text-cyan-400 text-sm rounded-full mb-4 hover:border-cyan-500/40 touch-manipulation"
+            >
               {categoryName}
-            </div>
+            </Link>
+
+            {product.is_trending && (
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-amber-500/15 border border-amber-500/30 text-amber-300 mb-4">
+                🔥 Trending
+              </div>
+            )}
 
             {/* Title */}
             <h1 className="text-4xl text-white mb-4">{product.name}</h1>
@@ -294,7 +365,9 @@ export function ProductDetailPage() {
               className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-lg rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-3 group"
             >
               <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
-              {PRODUCT_DETAIL.BUY_NOW}
+              <span className="inline-flex flex-col leading-tight">
+                <span className="text-lg font-semibold">Buy on {storeName}</span>
+              </span>
               <ExternalLink className="w-5 h-5" />
             </button>
 
@@ -302,7 +375,7 @@ export function ProductDetailPage() {
               {getProductRedirectMessage(product.affiliateStoreName)}
             </p>
 
-            {/* Description */}
+            {/* Description (production theme) */}
             <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6 mt-8">
               <h2 className="text-xl text-white mb-4">{PRODUCT_DETAIL.ABOUT_PRODUCT}</h2>
               <p className="text-gray-300 leading-relaxed">{product.description}</p>
@@ -366,13 +439,23 @@ export function ProductDetailPage() {
                   <div className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl overflow-hidden hover:border-cyan-500/50 transition-all hover:scale-105">
                     <div className="aspect-square overflow-hidden">
                       <img
-                        src={relatedProduct.image}
-                        alt={relatedProduct.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
-                        }}
+                          src={getWebpCandidate(relatedProduct.image) || relatedProduct.image}
+                          alt={relatedProduct.name}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const triedWebpFallback = target.dataset.webpFallbackTried === '1';
+                            if (!triedWebpFallback) {
+                              target.dataset.webpFallbackTried = '1';
+                              target.src = relatedProduct.image;
+                              return;
+                            }
+
+                            target.src =
+                              'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+                          }}
                       />
                     </div>
                     <div className="p-4">
@@ -387,9 +470,36 @@ export function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {trendingProducts.length > 0 && (
+          <section className="mt-16">
+            <h2 className="text-2xl text-white mb-6">Trending Now</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {trendingProducts.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/product/${item.id}`}
+                  className="group block bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-4 hover:border-cyan-500/40 transition-all"
+                >
+                  <div className="mb-2 inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px]">
+                    🔥 Trending
+                  </div>
+                  <p className="text-white line-clamp-2 group-hover:text-cyan-400 transition-colors">{item.name}</p>
+                  <p className="text-gray-400 text-sm mt-1 line-clamp-2">{item.tagline}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />
+
+      <MobileStickyBar
+        productUrl={product.affiliateLink}
+        whatsappUrl={siteSettings.whatsapp_url || null}
+        followUrl={product.social_media_links?.[0]?.url || null}
+      />
     </div>
   );
 }

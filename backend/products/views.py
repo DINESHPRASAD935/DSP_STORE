@@ -1,23 +1,36 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.core import is_ratelimited
-from .models import Category, Product, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink
-from .serializers import CategorySerializer, ProductSerializer, ProductListSerializer, SocialMediaSerializer, SiteSettingsSerializer, ProductSocialMediaLinkSerializer, ContactFormSerializer
+from .models import Category, Product, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink, BlogPost, UserActivity, Tenant
+from .serializers import (
+    CategorySerializer,
+    BadgeSerializer,
+    ProductSerializer,
+    ProductListSerializer,
+    SocialMediaSerializer,
+    SiteSettingsSerializer,
+    ProductSocialMediaLinkSerializer,
+    ContactFormSerializer,
+    BlogPostListSerializer,
+    BlogPostSerializer,
+)
 from .pagination import DynamicPageNumberPagination
 from .utils import build_product_query_params
 from django.core.mail import send_mail
 from django.conf import settings as django_settings
 from .email_utils import send_email_with_config
+from django.utils import timezone
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     """
     ViewSet for viewing categories.
     Public read-only access.
@@ -25,8 +38,14 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     Automatically filtered by tenant.
     """
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]  # Public read access
-    pagination_class = None  # Disable pagination for categories
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    # Disable pagination for categories (handled by DRF if pagination_class=None on viewset)
+    pagination_class = None
     
     def get_queryset(self):
         """Filter categories by current tenant"""
@@ -35,24 +54,39 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             return Category.objects.filter(tenant=tenant)
         return Category.objects.none()
 
+    def perform_create(self, serializer):
+        tenant = getattr(self.request, 'tenant', None)
+        serializer.save(tenant=tenant)
 
-class BadgeViewSet(viewsets.ViewSet):
+
+class BadgeViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for viewing badges.
-    Public read-only access.
-    Automatically filtered by tenant.
+    Badge CRUD:
+    - Public read: active badges only
+    - Admin read/write: all badges
     """
-    permission_classes = [AllowAny]  # Public read access
-    
-    def list(self, request):
-        """Return list of active badges for current tenant"""
-        tenant = getattr(request, 'tenant', None)
-        if tenant:
-            badges = Badge.objects.filter(tenant=tenant, is_active=True)
-        else:
-            badges = Badge.objects.none()
-        data = [{'id': b.id, 'name': b.name, 'display_name': b.display_name} for b in badges]
-        return Response(data)
+
+    serializer_class = BadgeSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def get_queryset(self):
+        tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            return Badge.objects.none()
+
+        qs = Badge.objects.filter(tenant=tenant)
+        if not (getattr(self.request, 'user', None) and self.request.user.is_staff):
+            qs = qs.filter(is_active=True)
+        return qs.order_by('name')
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request, 'tenant', None)
+        serializer.save(tenant=tenant)
 
 
 class SocialMediaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -92,16 +126,16 @@ class SiteSettingsViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['put', 'patch'])
     def update_settings(self, request):
         """Update site settings for current tenant"""
-        # Check authentication for write operations
-        import os
-        require_auth_env = os.environ.get('REQUIRE_AUTH_FOR_WRITES', '').strip().lower()
-        debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
-        require_auth = require_auth_env == 'true' if require_auth_env else not debug_mode
-        
-        if require_auth and not request.user.is_authenticated:
+        if not request.user.is_authenticated:
             return Response(
                 {'detail': 'Authentication required to update settings.'},
-                status=status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Admin privileges required to update settings.'},
+                status=status.HTTP_403_FORBIDDEN,
             )
         
         tenant = getattr(request, 'tenant', None)
@@ -112,6 +146,37 @@ class SiteSettingsViewSet(viewsets.ViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public read-only API for blog posts.
+    - GET /api/blog-posts/ (list)
+    - GET /api/blog-posts/{slug}/ (detail by slug)
+    """
+
+    lookup_field = 'slug'
+    permission_classes = [AllowAny]
+    pagination_class = DynamicPageNumberPagination
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['title', 'excerpt', 'content']
+    ordering_fields = ['published_at', 'updated_at', 'title']
+    ordering = ['-published_at']
+
+    def get_queryset(self):
+        tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            return BlogPost.objects.none()
+        return BlogPost.objects.filter(
+            tenant=tenant,
+            is_active=True,
+            is_archived=False,
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BlogPostListSerializer
+        return BlogPostSerializer
 
 
 class ContactFormViewSet(viewsets.ViewSet):
@@ -243,18 +308,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve', 'archived']:
             permission_classes = [AllowAny]
         else:
-            import os
-            require_auth_env = os.environ.get('REQUIRE_AUTH_FOR_WRITES', '').strip().lower()
-            if require_auth_env:
-                require_auth = require_auth_env == 'true'
-            else:
-                debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
-                require_auth = not debug_mode
-            
-            if require_auth:
-                permission_classes = [IsAuthenticated]
-            else:
-                permission_classes = [AllowAny]
+            permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
@@ -337,3 +391,70 @@ class ProductViewSet(viewsets.ModelViewSet):
             archived_products = Product.objects.none()
         serializer = self.get_serializer(archived_products, many=True)
         return Response(serializer.data)
+
+
+class AnalyticsTrackView(APIView):
+    """
+    Track public page views for the admin analytics dashboard.
+    Frontend calls this on route changes.
+    """
+
+    permission_classes = [AllowAny]
+    # Disable DRF's default SessionAuthentication (which enforces CSRF on POST).
+    authentication_classes: list = []
+
+    def post(self, request):
+        tenant = getattr(request, 'tenant', None)
+        if tenant is None:
+            tenant = Tenant.objects.filter(is_default=True, is_active=True).first()
+        if tenant is None:
+            # Safety fallback for environments where a default tenant doesn't exist yet.
+            tenant, _ = Tenant.objects.get_or_create(
+                name='Default Tenant',
+                defaults={'is_default': True, 'is_active': True},
+            )
+
+        ip_raw = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
+        ip_address = None
+        if ip_raw:
+            ip_address = str(ip_raw).split(',')[0].strip() or None
+
+        user_agent = request.META.get('HTTP_USER_AGENT', '')[:5000]  # keep DB size sane
+
+        # Cache-based throttle (per IP) to avoid hammering DB.
+        # If Redis isn't running in dev, cache ops can fail—never break page loads for analytics.
+        if ip_address:
+            try:
+                throttle_key = f'pv:throttle:{tenant.id}:{ip_address}'
+                hits = cache.get(throttle_key, 0)
+                if hits and int(hits) >= 60:
+                    return Response({'ok': True, 'throttled': True}, status=status.HTTP_200_OK)
+                if hits:
+                    try:
+                        cache.incr(throttle_key)
+                    except Exception:
+                        cache.set(throttle_key, int(hits) + 1, timeout=60)
+                else:
+                    cache.set(throttle_key, 1, timeout=60)
+            except Exception:
+                pass
+
+        # Optional lightweight de-dupe for the same IP in short bursts.
+        if ip_address:
+            last = (
+                UserActivity.objects.filter(tenant=tenant, activity_type='view', ip_address=ip_address)
+                .order_by('-created_at')
+                .first()
+            )
+            if last and (timezone.now() - last.created_at).total_seconds() < 5:
+                return Response({'ok': True, 'deduped': True}, status=status.HTTP_200_OK)
+
+        UserActivity.objects.create(
+            tenant=tenant,
+            product=None,
+            activity_type='view',
+            ip_address=ip_address,
+            user_agent=user_agent or None,
+        )
+
+        return Response({'ok': True, 'deduped': False}, status=status.HTTP_200_OK)

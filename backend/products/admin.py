@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tenant, Category, Product, UserActivity, ChatMessage, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink
+from .models import Tenant, Category, Product, UserActivity, ChatMessage, Badge, SocialMedia, SiteSettings, ProductSocialMediaLink, BlogPost
 
 
 @admin.register(Tenant)
@@ -49,7 +49,7 @@ class ProductSocialMediaLinkInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'tenant', 'is_active', 'is_archived', 'rating', 'created_at']
+    list_display = ['name', 'category', 'tenant', 'admin_number', 'is_active', 'is_archived', 'rating', 'created_at']
     list_filter = ['tenant', 'category', 'is_active', 'is_archived', 'badge', 'created_at']
     search_fields = ['name', 'tagline', 'description']
     list_editable = ['is_active', 'is_archived']
@@ -68,6 +68,7 @@ class ProductAdmin(admin.ModelAdmin):
                 'affiliate_store_name',
                 'badge',
                 'rating',
+                'admin_number',
             )
         }),
         ('Status', {
@@ -145,3 +146,31 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ['updated_at']
+
+
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ['title', 'slug', 'tenant', 'category', 'is_active', 'is_archived', 'published_at', 'updated_at']
+    list_filter = ['tenant', 'category', 'is_active', 'is_archived', 'updated_at']
+    search_fields = ['title', 'slug', 'excerpt', 'content', 'author_name']
+    raw_id_fields = ['tenant', 'category']
+    fieldsets = (
+        (None, {
+            'fields': (
+                'tenant',
+                'title',
+                'slug',
+                'excerpt',
+                'content',
+                'cover_image',
+                'author_name',
+                'category',
+                'recommended_product_numbers',
+                'published_at',
+            )
+        }),
+        ('Status', {
+            'fields': ('is_active', 'is_archived')
+        }),
+    )
+    prepopulated_fields = {'slug': ('title',)}

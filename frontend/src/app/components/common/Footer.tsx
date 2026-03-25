@@ -6,6 +6,7 @@ import {
   Phone,
   Home,
   CircleUserRound,
+  BookOpen,
   Shield,
   Scale,
   AlertCircle,
@@ -388,6 +389,15 @@ export function Footer() {
                     >
                       <Home className="h-4 w-4 shrink-0 text-gray-500 group-hover:text-cyan-400" aria-hidden />
                       {NAV.HOME}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/blog"
+                      className="group flex items-center gap-2 rounded-md px-1 py-1.5 -mx-1 text-sm text-gray-300 transition-colors hover:bg-gray-800/40 hover:text-cyan-400 hover:underline hover:underline-offset-2"
+                    >
+                      <BookOpen className="h-4 w-4 shrink-0 text-gray-500 group-hover:text-cyan-400" aria-hidden />
+                      {NAV.BLOG}
                     </Link>
                   </li>
                   <li>

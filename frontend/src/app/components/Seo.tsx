@@ -25,7 +25,7 @@ export function Seo({
   const base = getSiteUrl();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${base}${normalizedPath}`;
-  const desc = description.slice(0, 320);
+  const desc = description.slice(0, 160);
   const ogImage = absoluteUrl(image ?? undefined, base);
 
   const ldList = jsonLd
