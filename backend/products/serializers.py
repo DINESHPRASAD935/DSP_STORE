@@ -53,12 +53,18 @@ class ProductSerializer(serializers.ModelSerializer):
     badge_id = serializers.IntegerField(write_only=True, required=False)
     social_media_links = ProductSocialMediaLinkSerializer(many=True, read_only=True)
     affiliateLink = serializers.URLField(source='affiliate_link')
-    
+    affiliateStoreName = serializers.CharField(
+        source='affiliate_store_name',
+        allow_blank=True,
+        required=False,
+        max_length=80,
+    )
+
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'tagline', 'description', 'image',
-            'category', 'category_id', 'affiliateLink', 'badge', 'badge_id',
+            'category', 'category_id', 'affiliateLink', 'affiliateStoreName', 'badge', 'badge_id',
             'rating', 'social_media_links',
             'is_active', 'is_archived', 'created_at', 'updated_at'
         ]

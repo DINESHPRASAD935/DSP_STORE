@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, Star, ShoppingCart, Loader2 } from 'lucide-rea
 import { productApi, Product } from '../services/api';
 import { AdSlot, hasAdsConfigured } from '../components/AdSlot';
 import { Footer } from '../components/common/Footer';
-import { NAV, MESSAGES, PRODUCT_DETAIL } from '../constants/strings';
+import { NAV, MESSAGES, PRODUCT_DETAIL, getProductRedirectMessage } from '../constants/strings';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { Seo } from '../components/Seo';
 import { absoluteUrl, getSiteUrl } from '../utils/siteUrl';
@@ -299,7 +299,7 @@ export function ProductDetailPage() {
             </button>
 
             <p className="text-gray-500 text-sm text-center mt-4">
-              {PRODUCT_DETAIL.REDIRECT_MESSAGE}
+              {getProductRedirectMessage(product.affiliateStoreName)}
             </p>
 
             {/* Description */}

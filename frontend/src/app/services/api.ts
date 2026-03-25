@@ -137,6 +137,8 @@ export interface Product {
   image: string;
   category: string | { id: number; name: string; slug: string };
   affiliateLink: string;
+  /** Partner marketplace label for the product-page redirect line (e.g. Amazon, Flipkart). */
+  affiliateStoreName?: string;
   badge?: string;
   rating?: number;
   social_media_links?: ProductSocialMediaLink[];
@@ -159,6 +161,7 @@ export interface ProductCreateData {
   image: string;
   category_id: number;
   affiliateLink: string;
+  affiliateStoreName?: string;
   badge_id?: number | null;
   rating?: number;
 }

@@ -57,7 +57,18 @@ class ProductAdmin(admin.ModelAdmin):
     raw_id_fields = ['tenant', 'category', 'badge']
     fieldsets = (
         (None, {
-            'fields': ('tenant', 'name', 'tagline', 'description', 'image', 'category', 'affiliate_link', 'badge', 'rating')
+            'fields': (
+                'tenant',
+                'name',
+                'tagline',
+                'description',
+                'image',
+                'category',
+                'affiliate_link',
+                'affiliate_store_name',
+                'badge',
+                'rating',
+            )
         }),
         ('Status', {
             'fields': ('is_active', 'is_archived'),

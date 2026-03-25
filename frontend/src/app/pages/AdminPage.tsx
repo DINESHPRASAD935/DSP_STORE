@@ -48,6 +48,7 @@ export function AdminPage() {
     image: '',
     category_id: '',
     affiliateLink: '',
+    affiliateStoreName: '',
     badge_id: '',
     rating: '4.5'
   });
@@ -180,6 +181,7 @@ export function AdminPage() {
       image: '',
       category_id: categories.length > 0 ? categories[0].id.toString() : '',
       affiliateLink: '',
+      affiliateStoreName: '',
       badge_id: '',
       rating: '4.5',
     });
@@ -199,6 +201,7 @@ export function AdminPage() {
         image: formData.image,
         category_id: parseInt(formData.category_id),
         affiliateLink: formData.affiliateLink,
+        affiliateStoreName: formData.affiliateStoreName.trim(),
         badge_id: formData.badge_id === '' ? null : (formData.badge_id ? parseInt(formData.badge_id) : null),
         rating: formData.rating ? parseFloat(formData.rating) : undefined,
       };
@@ -247,6 +250,7 @@ export function AdminPage() {
         image: fullProduct.image,
       category_id: categoryId?.toString() || '',
         affiliateLink: fullProduct.affiliateLink,
+        affiliateStoreName: fullProduct.affiliateStoreName?.trim() ?? '',
         badge_id: badgeId?.toString() || '',
         rating: fullProduct.rating?.toString() || '4.5',
     });
@@ -754,6 +758,23 @@ export function AdminPage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-gray-300 mb-2" htmlFor="affiliateStoreName">
+                      {ADMIN.FORM.AFFILIATE_STORE_NAME}
+                    </label>
+                    <input
+                      id="affiliateStoreName"
+                      type="text"
+                      name="affiliateStoreName"
+                      value={formData.affiliateStoreName}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      placeholder={ADMIN.PLACEHOLDERS.AFFILIATE_STORE_NAME}
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    />
+                    <p className="text-gray-500 text-xs mt-1.5">{ADMIN.NOTES.AFFILIATE_STORE_NAME}</p>
+                  </div>
+
                   {/* Badge */}
                   <div>
                     <label className="block text-gray-300 mb-2">
@@ -1178,7 +1199,11 @@ export function AdminPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-300 mb-2">WhatsApp URL</label>
+                        <label className="block text-gray-300 mb-2">WhatsApp URL (floating button only)</label>
+                        <p className="text-gray-500 text-xs mb-2">
+                          Used only for the left floating WhatsApp shortcut. Add your WhatsApp <strong className="text-gray-400">channel</strong> under{' '}
+                          <span className="text-cyan-400/90">Social Media</span> in admin for footer deals and social icons.
+                        </p>
                         <input
                           type="url"
                           value={settingsFormData.whatsapp_url || ''}
