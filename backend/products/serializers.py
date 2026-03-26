@@ -217,6 +217,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
 class BlogPostSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
     recommended_products = serializers.SerializerMethodField()
+    cta_product = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
@@ -231,6 +232,10 @@ class BlogPostSerializer(serializers.ModelSerializer):
             'category',
             'recommended_product_numbers',
             'recommended_products',
+            'cta_label',
+            'cta_url',
+            'cta_product_serial_number',
+            'cta_product',
             'published_at',
             'updated_at',
         ]
@@ -271,3 +276,18 @@ class BlogPostSerializer(serializers.ModelSerializer):
         ordered_products = [products_by_number.get(n) for n in cleaned_numbers]
         ordered_products = [p for p in ordered_products if p is not None]
         return ProductSerializer(ordered_products, many=True, context=self.context).data
+
+    def get_cta_product(self, obj):
+        serial_no = obj.cta_product_serial_number
+        if not serial_no:
+            return None
+
+        product = Product.objects.filter(
+            tenant=obj.tenant,
+            is_active=True,
+            is_archived=False,
+            admin_number=serial_no,
+        ).first()
+        if not product:
+            return None
+        return ProductSerializer(product, context=self.context).data

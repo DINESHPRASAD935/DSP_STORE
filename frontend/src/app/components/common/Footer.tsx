@@ -538,16 +538,14 @@ export function Footer() {
       </div>
       </footer>
 
-      {/* Left edge: vertical social shortcuts — email always on mobile; sit higher on small screens so cards do not sit under FABs */}
-      <div className="fixed left-3 sm:left-6 z-50 flex flex-col gap-2.5 sm:gap-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-6">
+      {/* Left edge shortcuts — laptop/desktop only */}
+      <div className="fixed left-6 z-50 hidden lg:flex flex-col gap-3 bottom-6">
         {getFloatingSocialButtons().map((button, index) => (
           <a
             key={index}
             href={button.url}
             {...(button.isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
-            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${button.bgClass} transition-all duration-300 ${
-              button.isEmail ? 'flex' : 'hidden sm:flex'
-            } items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 touch-manipulation [&_svg]:max-sm:w-6 [&_svg]:max-sm:h-6`}
+            className={`w-14 h-14 rounded-full ${button.bgClass} transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 touch-manipulation`}
             title={button.title}
             aria-label={button.ariaLabel}
           >
@@ -556,9 +554,9 @@ export function Footer() {
         ))}
       </div>
 
-      {/* Floating Scroll to Top Button - Bottom Right (Always Visible When Scrolled) */}
+      {/* Floating Scroll to Top Button - Bottom Right (laptop/desktop only) */}
               {showScrollTop && (
-        <div className="fixed right-3 sm:right-6 z-50 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-6">
+        <div className="fixed right-6 z-50 bottom-6 hidden lg:block">
           <div className="relative w-16 h-16">
             {/* Circular Progress Indicator */}
             <svg

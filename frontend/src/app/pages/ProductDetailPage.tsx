@@ -287,7 +287,7 @@ export function ProductDetailPage() {
           {/* Image Section */}
           <div className="relative">
             {product.badge && (
-              <div className="absolute top-4 left-4 z-10 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full shadow-xl">
+              <div className="hidden sm:inline-flex absolute top-4 left-4 z-10 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full shadow-xl">
                 {product.badge}
               </div>
             )}
@@ -479,13 +479,35 @@ export function ProductDetailPage() {
                 <Link
                   key={item.id}
                   to={`/product/${item.id}`}
-                  className="group block bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-4 hover:border-cyan-500/40 transition-all"
+                  className="group block bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl overflow-hidden hover:border-cyan-500/40 transition-all"
                 >
-                  <div className="mb-2 inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px]">
-                    🔥 Trending
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-900/40">
+                    <img
+                      src={getWebpCandidate(item.image) || item.image}
+                      alt={item.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const triedWebpFallback = target.dataset.webpFallbackTried === '1';
+                        if (!triedWebpFallback) {
+                          target.dataset.webpFallbackTried = '1';
+                          target.src = item.image;
+                          return;
+                        }
+                        target.src =
+                          'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+                      }}
+                    />
+                    <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/35 text-amber-200 text-[11px]">
+                      🔥 Trending
+                    </div>
                   </div>
-                  <p className="text-white line-clamp-2 group-hover:text-cyan-400 transition-colors">{item.name}</p>
-                  <p className="text-gray-400 text-sm mt-1 line-clamp-2">{item.tagline}</p>
+                  <div className="p-4">
+                    <p className="text-white line-clamp-2 group-hover:text-cyan-400 transition-colors">{item.name}</p>
+                    <p className="text-gray-400 text-sm mt-1 line-clamp-2">{item.tagline}</p>
+                  </div>
                 </Link>
               ))}
             </div>
