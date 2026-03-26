@@ -9,11 +9,13 @@ import { AdminPage } from './pages/AdminPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AboutPage } from './pages/AboutPage';
 import { LegalPage } from './pages/LegalPage';
+import { ScrollToTop } from './components/ScrollToTop';
 
 export default function App() {
   return (
     <ErrorBoundary>
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/product/:id" element={<ProductDetailPage />} />

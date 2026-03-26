@@ -216,6 +216,10 @@ export interface BlogPost {
   category?: BlogPostCategory | string | null;
   recommended_product_numbers?: number[];
   recommended_products?: Product[];
+  cta_label?: string;
+  cta_url?: string | null;
+  cta_product_serial_number?: number | null;
+  cta_product?: Product | null;
   published_at?: string;
   updated_at?: string;
   is_active?: boolean;
@@ -450,6 +454,14 @@ export const contactApi = {
   // Submit contact form
   submit: async (data: ContactFormData): Promise<ContactFormResponse> => {
     const response = await api.post('/contact/', data);
+    return response.data;
+  },
+};
+
+// Public analytics tracking
+export const analyticsApi = {
+  trackView: async (payload?: { path?: string; referrer?: string }) => {
+    const response = await api.post('/analytics/track/', payload || {});
     return response.data;
   },
 };

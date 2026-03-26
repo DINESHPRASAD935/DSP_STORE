@@ -219,6 +219,22 @@ class BlogPost(models.Model):
         default=list,
         help_text='Ordered list of Product serial numbers to show as recommended products for this blog post (order preserved).',
     )
+    cta_label = models.CharField(
+        max_length=80,
+        blank=True,
+        default='',
+        help_text='Optional blog CTA button text (e.g., Buy Now on Amazon).',
+    )
+    cta_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text='Optional direct CTA URL. Leave blank to use CTA Product Serial Number.',
+    )
+    cta_product_serial_number = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text='Optional product serial number to auto-resolve CTA URL from product affiliate link.',
+    )
     is_active = models.BooleanField(default=True)
     is_archived = models.BooleanField(default=False)
     published_at = models.DateTimeField(blank=True, null=True)

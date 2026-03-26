@@ -166,6 +166,9 @@ class BlogPostAdmin(admin.ModelAdmin):
                 'author_name',
                 'category',
                 'recommended_product_numbers',
+                'cta_label',
+                'cta_url',
+                'cta_product_serial_number',
                 'published_at',
             )
         }),

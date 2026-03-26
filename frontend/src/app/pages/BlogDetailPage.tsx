@@ -34,6 +34,41 @@ export function BlogDetailPage() {
     return blog.category.name;
   }, [blog]);
 
+  const blogBuyCta = useMemo(() => {
+    if (!blog) return null;
+
+    const fromConfiguredProduct = blog.cta_product;
+    if (fromConfiguredProduct?.affiliateLink) {
+      return {
+        href: fromConfiguredProduct.affiliateLink,
+        label:
+          blog.cta_label?.trim() ||
+          `Buy on ${fromConfiguredProduct.affiliateStoreName?.trim() || 'Amazon'}`,
+      };
+    }
+
+    if (blog.cta_url) {
+      return {
+        href: blog.cta_url,
+        label: blog.cta_label?.trim() || 'Buy Now',
+      };
+    }
+
+    // Optional fallback: if admin added a safe partner link inside HTML, use first valid anchor.
+    const html = blog.content || '';
+    const anchorMatch = html.match(/<a[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/i);
+    if (!anchorMatch) return null;
+
+    const href = anchorMatch[1]?.trim();
+    if (!href || !/^https?:\/\//i.test(href)) return null;
+
+    const labelFromHtml = (anchorMatch[2] || '').replace(/<[^>]+>/g, '').trim();
+    return {
+      href,
+      label: blog.cta_label?.trim() || labelFromHtml || 'Buy Now',
+    };
+  }, [blog]);
+
   useEffect(() => {
     if (!slug) return;
 
@@ -283,6 +318,20 @@ export function BlogDetailPage() {
 
           {blog.excerpt && (
             <p className="text-gray-400 text-sm leading-relaxed mb-8">{blog.excerpt}</p>
+          )}
+
+          {blogBuyCta && (
+            <div className="mb-6 flex justify-center">
+              <a
+                href={blogBuyCta.href}
+                target="_blank"
+                rel="noopener noreferrer nofollow sponsored"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-400 hover:to-cyan-400 transition-all shadow-lg shadow-cyan-500/20"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {blogBuyCta.label}
+              </a>
+            </div>
           )}
 
           <article className="bg-gray-900/50 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-6">

@@ -29,9 +29,9 @@ export function ProductCardGlass({ product }: ProductCardGlassProps) {
       className="group block touch-manipulation rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500/80"
     >
       <div className="relative bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-lg border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:border-cyan-500/50 hover:shadow-2xl hover:shadow-cyan-500/20 md:group-hover:scale-[1.02] active:scale-[0.99]">
-        {/* Badge */}
+        {/* Badge (hide on mobile to avoid interrupting taps) */}
         {product.badge && (
-          <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs rounded-full shadow-lg">
+          <div className="hidden sm:inline-flex absolute top-4 left-4 z-10 px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs rounded-full shadow-lg">
             {product.badge}
           </div>
         )}
